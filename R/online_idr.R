@@ -87,7 +87,7 @@ conformal_idr <- function(x, y, x_out, y_out, online = TRUE, weights = NULL) {
     pos_x <- pos_x$ind
     n_thr <- length(unique(c(y, y_out)))
     n_x <- length(unique(c(x, x_out)))
-    out <- online_idr_computation_sequential_weighted(
+    out <- cidr_sequential(
       x_r = x_r,
       x_out = x_out,
       w = w,
@@ -129,7 +129,7 @@ conformal_idr <- function(x, y, x_out, y_out, online = TRUE, weights = NULL) {
     pos_x <- pos_x$ind
     n_thr <- length(y_unique_r)
     n_x <- length(x_r)
-    out <- online_idr_computation_static_weighted(
+    out <- cidr_static(
       x_r = x_r,
       x_out = x_out,
       w = w,

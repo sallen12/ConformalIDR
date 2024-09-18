@@ -9,11 +9,11 @@ fit_olspm <- function(y_tr, X_tr, X_ts) {
     .Call(`_ConformalIDR_fit_olspm`, y_tr, X_tr, X_ts)
 }
 
-online_idr_computation_sequential_weighted <- function(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x) {
-    .Call(`_ConformalIDR_online_idr_computation_sequential_weighted`, x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x)
+cidr_sequential <- function(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x) {
+    .Call(`_ConformalIDR_cidr_sequential`, x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x)
 }
 
-online_idr_computation_static_weighted <- function(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x) {
-    .Call(`_ConformalIDR_online_idr_computation_static_weighted`, x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x)
+cidr_static <- function(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x) {
+    .Call(`_ConformalIDR_cidr_static`, x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x)
 }
 

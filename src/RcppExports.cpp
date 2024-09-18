@@ -37,9 +37,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// online_idr_computation_sequential_weighted
-List online_idr_computation_sequential_weighted(NumericVector x_r, NumericVector x_out, List w, List W, List w_out, List pos_x, NumericVector y_unique_r, NumericVector y_out, int n_thr, int n_x);
-RcppExport SEXP _ConformalIDR_online_idr_computation_sequential_weighted(SEXP x_rSEXP, SEXP x_outSEXP, SEXP wSEXP, SEXP WSEXP, SEXP w_outSEXP, SEXP pos_xSEXP, SEXP y_unique_rSEXP, SEXP y_outSEXP, SEXP n_thrSEXP, SEXP n_xSEXP) {
+// cidr_sequential
+List cidr_sequential(NumericVector x_r, NumericVector x_out, List w, List W, List w_out, List pos_x, NumericVector y_unique_r, NumericVector y_out, int n_thr, int n_x);
+RcppExport SEXP _ConformalIDR_cidr_sequential(SEXP x_rSEXP, SEXP x_outSEXP, SEXP wSEXP, SEXP WSEXP, SEXP w_outSEXP, SEXP pos_xSEXP, SEXP y_unique_rSEXP, SEXP y_outSEXP, SEXP n_thrSEXP, SEXP n_xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -53,13 +53,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type y_out(y_outSEXP);
     Rcpp::traits::input_parameter< int >::type n_thr(n_thrSEXP);
     Rcpp::traits::input_parameter< int >::type n_x(n_xSEXP);
-    rcpp_result_gen = Rcpp::wrap(online_idr_computation_sequential_weighted(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x));
+    rcpp_result_gen = Rcpp::wrap(cidr_sequential(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x));
     return rcpp_result_gen;
 END_RCPP
 }
-// online_idr_computation_static_weighted
-List online_idr_computation_static_weighted(NumericVector x_r, NumericVector x_out, NumericVector w, List W, double w_out, List pos_x, NumericVector y_unique_r, NumericVector y_out, int n_thr, int n_x);
-RcppExport SEXP _ConformalIDR_online_idr_computation_static_weighted(SEXP x_rSEXP, SEXP x_outSEXP, SEXP wSEXP, SEXP WSEXP, SEXP w_outSEXP, SEXP pos_xSEXP, SEXP y_unique_rSEXP, SEXP y_outSEXP, SEXP n_thrSEXP, SEXP n_xSEXP) {
+// cidr_static
+List cidr_static(NumericVector x_r, NumericVector x_out, NumericVector w, List W, double w_out, List pos_x, NumericVector y_unique_r, NumericVector y_out, int n_thr, int n_x);
+RcppExport SEXP _ConformalIDR_cidr_static(SEXP x_rSEXP, SEXP x_outSEXP, SEXP wSEXP, SEXP WSEXP, SEXP w_outSEXP, SEXP pos_xSEXP, SEXP y_unique_rSEXP, SEXP y_outSEXP, SEXP n_thrSEXP, SEXP n_xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -73,7 +73,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< NumericVector >::type y_out(y_outSEXP);
     Rcpp::traits::input_parameter< int >::type n_thr(n_thrSEXP);
     Rcpp::traits::input_parameter< int >::type n_x(n_xSEXP);
-    rcpp_result_gen = Rcpp::wrap(online_idr_computation_static_weighted(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x));
+    rcpp_result_gen = Rcpp::wrap(cidr_static(x_r, x_out, w, W, w_out, pos_x, y_unique_r, y_out, n_thr, n_x));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -81,8 +81,8 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_ConformalIDR_fit_lspm", (DL_FUNC) &_ConformalIDR_fit_lspm, 3},
     {"_ConformalIDR_fit_olspm", (DL_FUNC) &_ConformalIDR_fit_olspm, 3},
-    {"_ConformalIDR_online_idr_computation_sequential_weighted", (DL_FUNC) &_ConformalIDR_online_idr_computation_sequential_weighted, 10},
-    {"_ConformalIDR_online_idr_computation_static_weighted", (DL_FUNC) &_ConformalIDR_online_idr_computation_static_weighted, 10},
+    {"_ConformalIDR_cidr_sequential", (DL_FUNC) &_ConformalIDR_cidr_sequential, 10},
+    {"_ConformalIDR_cidr_static", (DL_FUNC) &_ConformalIDR_cidr_static, 10},
     {NULL, NULL, 0}
 };
 

@@ -16,7 +16,7 @@ typedef tree<double, null_type, less<double>, rb_tree_tag,
 // computation with sequential update ------------------------------------------
 
 // [[Rcpp::export]]
-List online_idr_computation_sequential_weighted(
+List cidr_sequential(
     NumericVector x_r,
     NumericVector x_out,
     List w,
@@ -528,7 +528,7 @@ List online_idr_computation_sequential_weighted(
 
 
 // [[Rcpp::export]]
-List online_idr_computation_static_weighted(
+List cidr_static(
     NumericVector x_r,
     NumericVector x_out,
     NumericVector w,
