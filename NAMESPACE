@@ -2,5 +2,6 @@
 
 S3method(plot,conformal_idrfit)
 export(conformal_idr)
+export(fit_lspm)
 importFrom(Rcpp,evalCpp)
 useDynLib(ConformalIDR, .registration = TRUE)
