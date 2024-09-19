@@ -12,7 +12,7 @@ Description: Functions to implement conformal isotonic distributional regression
 URL: https://github.com/sallen12/ConformalIDR
 License: GPL (>= 2)
 Imports:
-  Rcpp (>= 0.12.0)
+    Rcpp (>= 0.12.0)
 Depends:
     R (>= 3.00)
 LinkingTo: Rcpp, RcppArmadillo
