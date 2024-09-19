@@ -14,7 +14,7 @@
 #'     as \code{x} plus one containing non-negative weights, with the last
 #'     weight for the new covariate. If \code{online} is \code{TRUE}, a list
 #'     of vectors of weights, with lengths \code{length(x) + 1} up to
-#'     \code{length(x) + \length(x_out)}. If omitted, equal weights are used.
+#'     \code{length(x) + length(x_out)}. If omitted, equal weights are used.
 #'
 #' @return
 #' Returns an object of class \code{conformal_idr}. It contains the jump points
