@@ -11,29 +11,29 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// fit_lspm
-arma::mat fit_lspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts);
-RcppExport SEXP _ConformalIDR_fit_lspm(SEXP y_trSEXP, SEXP X_trSEXP, SEXP X_tsSEXP) {
+// lspm
+arma::mat lspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts);
+RcppExport SEXP _ConformalIDR_lspm(SEXP y_trSEXP, SEXP X_trSEXP, SEXP X_tsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::colvec >::type y_tr(y_trSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X_tr(X_trSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X_ts(X_tsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_lspm(y_tr, X_tr, X_ts));
+    rcpp_result_gen = Rcpp::wrap(lspm(y_tr, X_tr, X_ts));
     return rcpp_result_gen;
 END_RCPP
 }
-// fit_olspm
-arma::mat fit_olspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts);
-RcppExport SEXP _ConformalIDR_fit_olspm(SEXP y_trSEXP, SEXP X_trSEXP, SEXP X_tsSEXP) {
+// olspm
+arma::mat olspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts);
+RcppExport SEXP _ConformalIDR_olspm(SEXP y_trSEXP, SEXP X_trSEXP, SEXP X_tsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::colvec >::type y_tr(y_trSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X_tr(X_trSEXP);
     Rcpp::traits::input_parameter< arma::mat >::type X_ts(X_tsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_olspm(y_tr, X_tr, X_ts));
+    rcpp_result_gen = Rcpp::wrap(olspm(y_tr, X_tr, X_ts));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -79,8 +79,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_ConformalIDR_fit_lspm", (DL_FUNC) &_ConformalIDR_fit_lspm, 3},
-    {"_ConformalIDR_fit_olspm", (DL_FUNC) &_ConformalIDR_fit_olspm, 3},
+    {"_ConformalIDR_lspm", (DL_FUNC) &_ConformalIDR_lspm, 3},
+    {"_ConformalIDR_olspm", (DL_FUNC) &_ConformalIDR_olspm, 3},
     {"_ConformalIDR_cidr_sequential", (DL_FUNC) &_ConformalIDR_cidr_sequential, 10},
     {"_ConformalIDR_cidr_static", (DL_FUNC) &_ConformalIDR_cidr_static, 10},
     {NULL, NULL, 0}

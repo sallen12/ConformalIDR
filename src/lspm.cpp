@@ -6,7 +6,7 @@
 using namespace Rcpp;
 
 // [[Rcpp::export]]
-arma::mat fit_lspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts) {
+arma::mat lspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts) {
   arma::mat XX = inv(X_tr.t() * X_tr);
   arma::mat H = X_tr * XX * X_tr.t();
 
@@ -31,7 +31,7 @@ arma::mat fit_lspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts) {
 
 
 // [[Rcpp::export]]
-arma::mat fit_olspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts) {
+arma::mat olspm(arma::colvec y_tr, arma::mat X_tr, arma::mat X_ts) {
   arma::mat XX = inv(X_tr.t() * X_tr);
   arma::mat H = X_tr * XX * X_tr.t();
 

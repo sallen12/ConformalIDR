@@ -7,7 +7,10 @@ fit_emos <- function(y, X, X_ts) {
   return(pred)
 }
 
-sourceCpp("lspm_cpp.cpp")
+fit_lspm <- function(y, X, X_ts) {
+  fit <- fit_lspm(y, as.matrix(X), as.matrix(X_ts))
+  return(fit)
+}
 
 fit_idr <- function(y, X, X_ts) {
   fit <- idr(y = y, X = data.frame(X = X))
@@ -127,6 +130,17 @@ eval_mond <- function(preds, obs, t_vec) {
   return(list(pit = pit, crps = crps, F_t = F_t, thick = thicc))
 }
 
+# evaluate ideal forecaster in gamma simulation study
+eval_ideal <- function(preds, obs, anti = FALSE) {
+  if (anti) {
+    pit <- pgamma(obs, shape = sqrt(10 - preds), scale = pmin(pmax(10 - preds, 1), 6))
+    crps <- crps_gamma(obs, shape = sqrt(10 - preds), scale = pmin(pmax(10 - preds, 1), 6))
+  } else {
+    pit <- pgamma(obs, shape = sqrt(preds), scale = pmin(pmax(preds, 1), 6))
+    crps <- crps_gamma(obs, shape = sqrt(preds), scale = pmin(pmax(preds, 1), 6))
+  }
+  return(list(pit = pit, crps = crps))
+}
 
 threshreldiag <- function(x, y, t_vec, title = NULL, xlab = "x", ylab = "x_rc", pointSize = NULL, textSize = NULL, spaceLegend = NULL){
 
