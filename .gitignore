@@ -8,3 +8,6 @@
 *.dll
 
 plots/
+
+*_pr.R
+*_ws.R
