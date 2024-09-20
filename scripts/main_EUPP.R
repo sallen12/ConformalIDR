@@ -91,7 +91,10 @@ plot_pit_pp(pit, score, filename = "plots/EUMN_pit_comp.png")
 plot_tcal(F_t, ts_obs, t_vec, filename = "plots/EUMN_tcal_comp.png")
 
 ## Thickness
-plot_thick(thick, type = "traffic", filename = "plots/EUMN_thick_obs_ts.png")
-plot_thick(thick, type = "hist", filename = "plots/EUMN_thick_cidr.png")
-plot_thick(thick, type = "scatter", filename = "plots/EUMN_thick_ens.png")
+st <- 1
+th_all <- thick[['cidr']]
+th_loc <- th_all[st, ]
+plot_thick(th_loc, type = "traffic", obs = ts_obs[st, ], times = ts_times, filename = "plots/EUMN_thick_obs_ts.png")
+plot_thick(th_all, type = "hist", filename = "plots/EUMN_thick_cidr.png")
+plot_thick(th_loc, type = "scatter", x = ts_fc_mn[st, ], filename = "plots/EUMN_thick_ens.png")
 
