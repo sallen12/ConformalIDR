@@ -43,9 +43,10 @@ online <- TRUE
 weights <- vector("list", n_out)
 for (j in seq_along(weights)) weights[[j]] <- rep(1, n + j)
 
+
 #' @rdname cidr
 #' @export
-conformal_idr <- function(x, y, x_out, y_out, online = TRUE, weights = NULL) {
+fit_cidr <- function(x, y, x_out, y_out, online = FALSE, weights = NULL) {
   x_order <- order(x)
   x <- x[x_order]
   y <- y[x_order]

@@ -529,21 +529,7 @@ plot_icu_example <- function(cidr_preds, lspm_preds, filename = NULL) {
 
 
 ################################################################################
-##### additional functions
-
-
-fit_cidr <- function(y, X, X_ts) {
-  fit <- conformal_idr(x = X, y = y, x_out = X_ts, y_out = NA, online = FALSE)
-  return(fit)
-}
-
-fit_locb <- function(y, X, X_ts, k = 1) {
-  out <- kmeans(X, k)
-  tr_cl <- out$cluster
-  ts_cl <- clue::cl_predict(out, as.matrix(X_ts))
-  return(list(tr = data.frame(y = y, cl = tr_cl), ts = as.vector(ts_cl)))
-}
-
+##### evaluation functions
 
 eval_lspm <- function(preds, obs, t_vec) {
   rank_y <- rowSums(obs > preds) + 1

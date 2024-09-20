@@ -2,11 +2,11 @@
 % Please edit documentation in R/cidr.R
 \name{cidr}
 \alias{cidr}
-\alias{conformal_idr}
+\alias{fit_cidr}
 \alias{plot.conformal_idrfit}
 \title{Online conformal IDR}
 \usage{
-conformal_idr(x, y, x_out, y_out, online = TRUE, weights = NULL)
+fit_cidr(x, y, x_out, y_out, online = FALSE, weights = NULL)
 
 \method{plot}{conformal_idrfit}(fit, index = 1)
 }
