@@ -46,7 +46,8 @@ for (j in seq_along(weights)) weights[[j]] <- rep(1, n + j)
 
 #' @rdname cidr
 #' @export
-fit_cidr <- function(x, y, x_out, y_out, online = FALSE, weights = NULL) {
+conformal_idr <- function(x, y, x_out, online = FALSE, weights = NULL) {
+  y_out <- NA
   x_order <- order(x)
   x <- x[x_order]
   y <- y[x_order]
@@ -144,83 +145,7 @@ fit_cidr <- function(x, y, x_out, y_out, online = FALSE, weights = NULL) {
     )
   }
 
-  out <- c(out, list(x = x, y = y, x_out = x_out, y_out = y_out))
-  structure(out, class = "conformal_idrfit")
-}
+  out <- c(out, list(x = x, y = y, x_out = x_out))
 
-# 1. aggregate weights over training x (single vector w or list)
-# 2. for non-online, do weighted IDR (probably no replacement necessary)
-# 3. for online, replace aggregated weights in each loop
-
-plot_data_cidr <- function(fit, indices) {
-  points <- fit$points
-  cdf_oos <- fit$cdf_oos
-  cdf_lwr <- fit$cdf_lwr
-  cdf_upr <- fit$cdf_upr
-  cdf_lcnf <- fit$cdf_lcnf
-  cdf_ucnf <- fit$cdf_ucnf
-  n_ind <- length(indices)
-  out <- vector("list", length = n_ind)
-  if (is.matrix(points)) {
-    for (i in seq_len(n_ind)) {
-      tmp_points <- points[, indices[i]]
-      mi <- min(tmp_points[is.finite(tmp_points)]) - 1
-      ma <- max(tmp_points[is.finite(tmp_points)]) + 1
-      tmp_points <- c(mi - 1, pmin(pmax(tmp_points, mi), ma), ma + 1)
-      out[[i]] <- data.frame(
-        x_out = unname(fit$x_out[indices[i]]),
-        points = tmp_points,
-        cdf_lwr = c(0, cdf_lwr[, indices[i]], 1),
-        cdf_upr = c(0, cdf_upr[, indices[i]], 1),
-        cdf_oos = c(0, cdf_oos[, indices[i]], 1),
-        cdf_lcnf = c(0, cdf_lcnf[, indices[i]], 1),
-        cdf_ucnf = c(0, cdf_ucnf[, indices[i]], 1)
-      )
-    }
-  } else {
-    mi <- min(points[is.finite(points)]) - 1
-    ma <- max(points[is.finite(points)]) + 1
-    points <- c(mi - 1, pmin(pmax(points, mi), ma), ma + 1)
-    for (i in seq_len(n_ind)) {
-      out[[i]] <- data.frame(
-        x_out = unname(fit$x_out[indices[i]]),
-        points = points,
-        cdf_lwr = c(0, cdf_lwr[, indices[i]], 1),
-        cdf_upr = c(0, cdf_upr[, indices[i]], 1),
-        cdf_oos = c(0, cdf_oos[, indices[i]], 1),
-        cdf_lcnf = c(0, cdf_lcnf[, indices[i]], 1),
-        cdf_ucnf = c(0, cdf_ucnf[, indices[i]], 1)
-      )
-    }
-  }
-  do.call(rbind, out)
-}
-
-#' @rdname cidr
-#' @export
-plot.conformal_idrfit <- function(fit, index = 1) {
-  points <- fit$points
-  cdf_oos <- fit$cdf_oos
-  cdf_lwr <- fit$cdf_lwr
-  cdf_upr <- fit$cdf_upr
-  cdf_lcnf <- fit$cdf_lcnf
-  cdf_ucnf <- fit$cdf_ucnf
-  if (!is.null(dim(points))) {
-    points <- points[, index]
-  }
-  mi <- min(points[is.finite(points)]) - 1
-  ma <- max(points[is.finite(points)]) + 1
-  points <- c(mi - 1, pmin(pmax(points, mi), ma), ma + 1)
-  plot(
-    points,
-    c(0, cdf_oos[, index], 1),
-    type = "s",
-    xlim = c(mi + 1, ma - 1),
-    xlab = "Threshold",
-    ylab = "CDFs"
-  )
-  lines(points, c(0, cdf_lwr[, index], 1), type = "s", lty = 5, col = "blue")
-  lines(points, c(0, cdf_upr[, index], 1), type = "s", lty = 5, col = "blue")
-  lines(points, c(0, cdf_lcnf[, index], 1), type = "s", lty = 5, col = "red")
-  lines(points, c(0, cdf_ucnf[, index], 1), type = "s", lty = 5, col = "red")
+  structure(out, class = "conformal_fit")
 }

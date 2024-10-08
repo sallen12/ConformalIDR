@@ -15,9 +15,20 @@ NULL
 
 #' @rdname locb
 #' @export
-fit_locb <- function(y, X, X_ts, k = 1) {
-  out <- kmeans(X, k)
+conformal_bin <- function(x, y, x_out, k = 1) {
+  if (is.vector(x)) x <- as.matrix(x)
+  if (is.vector(x_out)) x_out <- as.matrix(x_out)
+
+  out <- kmeans(x, k)
   tr_cl <- out$cluster
-  ts_cl <- clue::cl_predict(out, as.matrix(X_ts))
-  return(list(tr = data.frame(y = y, cl = tr_cl), ts = as.vector(ts_cl)))
+  ts_cl <- clue::cl_predict(out, x_out) |> as.vector()
+
+  n <- length(y) + 1
+  points <- sapply(1:k, function(i) y[tr_cl == i] |> sort())
+
+  out <- list(x = x, y = y, x_out = x_out)
+  out <- c(out, bins = list(train = tr_cl, test = ts_cl))
+  structure(out, class = "conformal_fit")
 }
+
+

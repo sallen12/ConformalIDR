@@ -2,10 +2,10 @@
 % Please edit documentation in R/lspm.R
 \name{lspm}
 \alias{lspm}
-\alias{fit_lspm}
+\alias{conformal_lspm}
 \title{Least squares prediction machine}
 \usage{
-fit_lspm(y, X, X_ts)
+conformal_lspm(x, y, x_out)
 }
 \arguments{
 \item{y}{training observations}

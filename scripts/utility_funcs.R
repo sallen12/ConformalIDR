@@ -255,7 +255,7 @@ local_binning_cv <- function(k_vec = c(1, seq(5, 100, 5))) {
       test <- data.frame(obs = tr_obs[j, seas_ind], ens.mu = tr_fc_mn[j, seas_ind])
 
       for (k in seq_along(k_vec)) {
-        locb_preds <- fit_locb(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu, k_vec[k])
+        locb_preds <- conformal_bin(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu, k_vec[k])
         scores <- eval_locb(locb_preds, test$obs, t_vec)
         score_mat[j, k, i] <- mean(scores$crps)
       }
@@ -477,7 +477,7 @@ local_binning_icu_cv <- function(k_vec = c(1, seq(10, 100, 10))) {
     val <- subset(data_val, icuCode == icu_vec[j])
 
     for (k in seq_along(k_vec)) {
-      locb_preds <- fit_locb(train$los, train$index, val$index, k)
+      locb_preds <- conformal_bin(train$los, train$index, val$index, k)
       scores <- eval_locb(locb_preds, val$los, t_vec)
       score_mat[j, k] <- mean(scores$crps)
     }
@@ -531,38 +531,21 @@ plot_icu_example <- function(cidr_preds, lspm_preds, filename = NULL) {
 ################################################################################
 ##### evaluation functions
 
-eval_lspm <- function(preds, obs, t_vec) {
-  rank_y <- rowSums(obs > preds) + 1
-  n <- ncol(preds) + 1
-  pit <- (rank_y/n) +  runif(length(obs))*((rank_y + 1)/n - rank_y/n)
-  crps <- crps_sample(as.numeric(obs), preds) # actual CRPS is infinite
-  if (length(obs) > 1) {
-    F_t <- sapply(t_vec, function(t) rowMeans(preds <= t))
-  } else {
-    F_t <- sapply(t_vec, function(t) mean(preds <= t))
-  }
-  thicc <- 1/sum(!is.na(obs))
-  return(list(pit = pit, crps = crps, F_t = F_t, thick = thicc))
-}
-
-eval_cidr <- function(preds, obs, t_vec) {
+eval_conf <- function(preds, obs, t_vec) {
   n <- length(obs)
+  if (is.vector(preds$points)) preds$points <- replicate(n, preds$points)
   pit0 <- function(x, y, z) stepfun(x = x, y = c(0, y))(z)
-  pit <- sapply(1:length(obs), function(i) pit0(preds$points, preds$cdf_oos[, i], obs[i]))
-
-  ens <- preds$points[-c(1, length(preds$points))]
+  pit <- sapply(1:length(obs), function(i) pit0(preds$points[, i], preds$cdf_oos[, i], obs[i]))
+  ens <- preds$points[-c(1, nrow(preds$points)), ] |> t()
   if (length(obs) > 1) {
-    w <- pmax(apply(preds$cdf_oos, 2, diff)[-1, ], 0)
-    crps <- sapply(1:length(obs), function(i)
-      crps_sample(obs[i], ens, w = w[, i]))
+    w <- pmax(apply(preds$cdf_oos, 2, diff)[-1, ], 0)  |> t()
   } else {
     w <- pmax(diff(preds$cdf_oos)[-1], 0)
-    crps <- crps_sample(obs, ens, w = w)
   }
-
+  crps <- crps_sample(obs, ens, w = w)
   F_t <- sapply(t_vec, function(t) {
     sapply(1:length(obs), function(i) {
-      pit0(preds$points, preds$cdf_oos[, i], t)
+      pit0(preds$points[, i], preds$cdf_oos[, i], t)
     })
   })
 

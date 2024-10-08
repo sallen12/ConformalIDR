@@ -2,13 +2,10 @@
 % Please edit documentation in R/cidr.R
 \name{cidr}
 \alias{cidr}
-\alias{fit_cidr}
-\alias{plot.conformal_idrfit}
+\alias{conformal_idr}
 \title{Online conformal IDR}
 \usage{
-fit_cidr(x, y, x_out, y_out, online = FALSE, weights = NULL)
-
-\method{plot}{conformal_idrfit}(fit, index = 1)
+conformal_idr(x, y, x_out, online = FALSE, weights = NULL)
 }
 \arguments{
 \item{x}{training covariates}
@@ -16,8 +13,6 @@ fit_cidr(x, y, x_out, y_out, online = FALSE, weights = NULL)
 \item{y}{training observations}
 
 \item{x_out}{new covariates}
-
-\item{y_out}{new observations}
 
 \item{online}{whether to sequentially update the training data set. Default
 is \code{TRUE}. If \code{FALSE}, the same training data is used for
@@ -28,6 +23,8 @@ as \code{x} plus one containing non-negative weights, with the last
 weight for the new covariate. If \code{online} is \code{TRUE}, a list
 of vectors of weights, with lengths \code{length(x) + 1} up to
 \code{length(x) + length(x_out)}. If omitted, equal weights are used.}
+
+\item{y_out}{new observations}
 }
 \value{
 Returns an object of class \code{conformal_idr}. It contains the jump points

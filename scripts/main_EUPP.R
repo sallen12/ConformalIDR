@@ -51,23 +51,21 @@ for (j in seq_along(stat_ids)) {
     test <- data.frame(obs = ts_obs[j, seas_ind], ens.mu = ts_fc_mn[j, seas_ind])
 
     ### LSPM
-    lspm_preds <- fit_lspm(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu)
-    scores <- eval_lspm(lspm_preds, test$obs, t_vec)
-    pit[['lspm']][j, seas_ind] <- scores$pit
-    score[['lspm']][j, seas_ind] <- scores$crps
-    F_t[['lspm']][j, seas_ind, ] <- scores$F_t
-    thick[['lspm']][j, seas_ind] <- scores$thick
+    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
+    pit[['lspm']][j, seas_ind] <- pit(lspm_preds, test$obs)
+    score[['lspm']][j, seas_ind] <- crps(lspm_preds, test$obs)
+    F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, test$obs, t_vec)
+    thick[['lspm']][j, seas_ind] <- thickness(lspm_preds)
 
     ### CIDR
-    cidr_preds <- fit_cidr(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu)
-    scores <- eval_cidr(cidr_preds, test$obs, t_vec)
-    pit[['cidr']][j, seas_ind] <- scores$pit
-    score[['cidr']][j, seas_ind] <- scores$crps
-    F_t[['cidr']][j, seas_ind, ] <- scores$F_t
-    thick[['cidr']][j, seas_ind] <- scores$thick
+    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
+    pit[['cidr']][j, seas_ind] <- pit(cidr_preds, test$obs)
+    score[['cidr']][j, seas_ind] <- crps(cidr_preds, test$obs)
+    F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, test$obs, t_vec)
+    thick[['cidr']][j, seas_ind] <- thickness(cidr_preds)
 
     ### LB
-    locb_preds <- fit_locb(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu, k[i_s, j])
+    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, k[i_s, j])
     scores <- eval_locb(locb_preds, test$obs, t_vec)
     pit[['locb']][j, seas_ind] <- scores$pit
     score[['locb']][j, seas_ind] <- scores$crps
@@ -76,6 +74,54 @@ for (j in seq_along(stat_ids)) {
   }
 }
 rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, scores)
+
+
+################################################################################
+## prediction (rolling)
+
+## optimal number of bins for local binning
+k <- local_binning_cv()
+
+## fit models
+for (j in seq_along(stat_ids)) {
+  st <- stat_ids[j]
+  for (i in 1:4) {
+    s <- c("Wi", "Sp", "Su", "Au")[i]
+    print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Season: ', s))
+
+    ### Get train data
+    seas_ind <- tr_seas == s
+    train <- data.frame(obs = tr_obs[j, seas_ind], ens.mu = tr_fc_mn[j, seas_ind])
+    seas_ind <- ts_seas == s
+    test <- data.frame(obs = ts_obs[j, seas_ind], ens.mu = ts_fc_mn[j, seas_ind])
+
+    ### LSPM
+    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
+    scores <- eval_conf(lspm_preds, test$obs, t_vec)
+    pit[['lspm']][j, seas_ind] <- scores$pit
+    score[['lspm']][j, seas_ind] <- scores$crps
+    F_t[['lspm']][j, seas_ind, ] <- scores$F_t
+    thick[['lspm']][j, seas_ind] <- scores$thick
+
+    ### CIDR
+    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
+    scores <- eval_conf(cidr_preds, test$obs, t_vec)
+    pit[['cidr']][j, seas_ind] <- scores$pit
+    score[['cidr']][j, seas_ind] <- scores$crps
+    F_t[['cidr']][j, seas_ind, ] <- scores$F_t
+    thick[['cidr']][j, seas_ind] <- scores$thick
+
+    ### LB
+    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, k[i_s, j])
+    scores <- eval_locb(locb_preds, test$obs, t_vec)
+    pit[['locb']][j, seas_ind] <- scores$pit
+    score[['locb']][j, seas_ind] <- scores$crps
+    F_t[['locb']][j, seas_ind, ] <- scores$F_t
+    thick[['locb']][j, seas_ind] <- scores$thick
+  }
+}
+rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, scores)
+
 
 
 ################################################################################

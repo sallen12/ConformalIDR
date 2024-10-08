@@ -2,19 +2,19 @@
 % Please edit documentation in R/locb.R
 \name{locb}
 \alias{locb}
-\alias{fit_locb}
+\alias{conformal_bin}
 \title{Local binning}
 \usage{
-fit_locb(y, X, X_ts, k = 1)
+conformal_bin(x, y, x_out, k = 1)
 }
 \arguments{
 \item{y}{training observations}
 
+\item{k}{number of bins}
+
 \item{X}{training covariates}
 
 \item{X_ts}{test covariates}
-
-\item{k}{number of bins}
 }
 \value{
 Local binning fit based on y and X, applied to X_ts
