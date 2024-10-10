@@ -3,11 +3,10 @@
 
 set.seed(90743892)
 
-library(scoringRules)
+library(ConformalIDR)
 library(WeightedForecastVerification)
 library(ggplot2)
 
-source("scripts/utility_funcs.R")
 
 # wrapper to fit and evaluate the different prediction methods
 get_results <- function(N_tr = 500, x_ts, y_ts, anti = FALSE, k = 10) {
@@ -18,73 +17,67 @@ get_results <- function(N_tr = 500, x_ts, y_ts, anti = FALSE, k = 10) {
   if (anti) x_tr <- 10 - x_tr
 
   N_ts <- length(y_ts)
-  pit <- data.frame(replicate(3, numeric(N_ts)))
-  colnames(pit) <- c("lspm", "cidr", "mond")
-  thicc <- crps <- pit
+  pcal <- data.frame(replicate(3, numeric(N_ts)))
+  colnames(pcal) <- c("lspm", "cidr", "locb")
+  thick <- score <- pcal
 
   t_vec <- unname(quantile(y_ts, c(0.1, 0.25, 0.5, 0.75, 0.9)))
   n_t <- length(t_vec)
   F_t <- list(lspm = matrix(NA, N_ts, n_t),
               cidr = matrix(NA, N_ts, n_t),
-              mond = matrix(NA, N_ts, n_t))
+              locb = matrix(NA, N_ts, n_t))
 
   ### LSPM
-  lspm_preds <- fit_lspm(y = y_tr, X = x_tr, X_ts = x_ts)
-  scores <- eval_lspm(lspm_preds, y_ts, t_vec)
-  pit[['lspm']] <- scores$pit
-  crps[['lspm']] <- scores$crps
-  F_t[['lspm']] <- scores$F_t
-  thicc[['lspm']] <- scores$thick
+  lspm_preds <- conformal_lspm(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts)
+  pcal[['lspm']] <- lspm_preds$pit
+  score[['lspm']] <- lspm_preds$crps
+  thick[['lspm']] <- lspm_preds$thick
+  F_t[['lspm']] <- threshcal(lspm_preds, t_vec)
 
   ### CIDR
-  cidr_preds <- fit_cidr(y = y_tr, X = x_tr, X_ts = x_ts)
-  scores <- eval_cidr(cidr_preds, y_ts, t_vec)
-  pit[['cidr']] <- scores$pit
-  crps[['cidr']] <- scores$crps
-  F_t[['cidr']] <- scores$F_t
-  thicc[['cidr']] <- scores$thick
+  cidr_preds <- conformal_idr(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts)
+  pcal[['cidr']] <- cidr_preds$pit
+  score[['cidr']] <- cidr_preds$crps
+  thick[['cidr']] <- cidr_preds$thick
+  F_t[['cidr']] <- threshcal(cidr_preds, t_vec)
 
-  ### Mondrian
-  mond_preds <- fit_mond(y = y_tr, X = x_tr, X_ts = x_ts, k)
-  scores <- eval_mond(mond_preds, y_ts, t_vec)
-  pit[['mond']] <- scores$pit
-  crps[['mond']] <- scores$crps
-  F_t[['mond']] <- scores$F_t
-  thicc[['mond']] <- scores$thick
+  ### LB
+  locb_preds <- conformal_bin(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts, k = k)
+  pcal[['locb']] <- sapply(locb_preds, function(x) x$pit)
+  score[['locb']] <- sapply(locb_preds, function(x) x$crps)
+  thick[['locb']] <- sapply(locb_preds, function(x) x$thick)
+  F_t[['locb']] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
 
   end <- Sys.time()
   print(end - start)
 
-  return(list(pit = pit, crps = crps, F_t = F_t, thick = thicc))
+  return(list(pit = pcal, crps = score, F_t = F_t, thick = thick))
 }
 
 # wrapper to plot and save PIT histograms, pp-plots, and threshold calibration plots
-plot_cal <- function(pit, crps, F_t = NULL, obs = NULL, type = "pitpp", filename = NULL) {
+plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", filename = NULL) {
   if (type == "pithist") {
     ## PIT histograms
-    id_plot <- pit_hist(pit[['id']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                        title = paste("Ideal: CRPS =", round(mean(crps[['id']], na.rm = T), 3)))
-    lspm_plot <- pit_hist(pit[['lspm']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                          title = paste("LSPM: CRPS =", round(mean(crps[['lspm']], na.rm = T), 3)))
-    cidr_plot <- pit_hist(pit[['cidr']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                          title = paste("CIDR: CRPS =", round(mean(crps[['cidr']], na.rm = T), 3)))
-    mond_plot <- pit_hist(pit[['mond']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                          title = paste("LB: CRPS =", round(mean(crps[['mond']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, mond_plot, ncol = 1)
+    lspm_plot <- pit_hist(pcal[['lspm']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
+                          title = paste("LSPM: CRPS =", round(mean(score[['lspm']], na.rm = T), 3)))
+    cidr_plot <- pit_hist(pcal[['cidr']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
+                          title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
+    locb_plot <- pit_hist(pcal[['locb']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
+                          title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = 1)
   } else if (type == "pitpp") {
     ## PIT pp-plots
-    id_plot <- pit_reldiag(pit[['id']], title = paste("Ideal: CRPS =", round(mean(crps[['id']], na.rm = T), 3)))
-    lspm_plot <- pit_reldiag(pit[['lspm']], title = paste("LSPM: CRPS =", round(mean(crps[['lspm']], na.rm = T), 3)))
-    cidr_plot <- pit_reldiag(pit[['cidr']], title = paste("CIDR: CRPS =", round(mean(crps[['cidr']], na.rm = T), 3)))
-    mond_plot <- pit_reldiag(pit[['mond']], title = paste("LB: CRPS =", round(mean(crps[['mond']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, mond_plot, ncol = 1)
+    lspm_plot <- pit_reldiag(pcal[['lspm']], title = paste("LSPM: CRPS =", round(mean(score[['lspm']], na.rm = T), 3)))
+    cidr_plot <- pit_reldiag(pcal[['cidr']], title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
+    locb_plot <- pit_reldiag(pcal[['locb']], title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = 1)
   } else if (type == "threshcal") {
     ## threshold calibration
     t_vec <- quantile(obs, c(0.1, 0.25, 0.5, 0.75, 0.9))
-    lspm_plot <- threshreldiag(F_t[['lspm']], obs, t_vec, title = "LSPM")
-    cidr_plot <- threshreldiag(F_t[['cidr']], obs, t_vec, title = "CIDR")
-    mond_plot <- threshreldiag(F_t[['mond']], obs, t_vec, title = "LB")
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, mond_plot, nrow = 1)
+    lspm_plot <- tc_reldiag(F_t[['lspm']], obs, t_vec, title = "LSPM")
+    cidr_plot <- tc_reldiag(F_t[['cidr']], obs, t_vec, title = "CIDR")
+    locb_plot <- tc_reldiag(F_t[['locb']], obs, t_vec, title = "LB")
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
   } else {
     stop("argument 'type' must be one of 'pithist', 'pitpp', and 'threshcal'")
   }
@@ -97,6 +90,20 @@ plot_cal <- function(pit, crps, F_t = NULL, obs = NULL, type = "pitpp", filename
     }
 
   }
+}
+
+# function to plot example data
+plot_example <- function(x, y, filename = NULL) {
+  df <- data.frame(x = x, y = y)
+  plot_obj <- ggplot(df) + geom_point(aes(x = x, y = y), size = 0.5) +
+    scale_x_continuous(name = "X", limits = c(0, 10)) +
+    scale_y_continuous(name = "Y", limits = c(0, 80)) +
+    theme_bw() +
+    theme(panel.grid = element_blank())
+  if (!is.null(filename)) {
+    ggsave(filename, plot_obj, width = 3, height = 3)
+  }
+  return(plot_obj)
 }
 
 
@@ -112,13 +119,9 @@ y_ts <- rgamma(N_ts, shape = sqrt(x_ts), scale = pmin(pmax(x_ts, 1), 6))
 # antitonic example
 y_ts_at <- rgamma(N_ts, shape = sqrt(10 - x_ts), scale = pmin(pmax(10 - x_ts, 1), 6))
 
-df <- data.frame(x = x_ts[1:1000], y = y_ts[1:1000])
-ggplot(df) + geom_point(aes(x = x, y = y), size = 0.5) +
-  scale_x_continuous(name = "X", limits = c(0, 10)) +
-  scale_y_continuous(name = "Y", limits = c(0, 80)) +
-  theme_bw() +
-  theme(panel.grid = element_blank())
-ggsave("plots/simstudy_data.png", width = 3, height = 3)
+# plot example data
+plot_example(x_ts[1:1000], y_ts[1:1000], filename = "plots/simstudy_data.png")
+plot_example(x_ts[1:1000], y_ts_at[1:1000])
 
 
 ################################################################################
