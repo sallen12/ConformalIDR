@@ -5,18 +5,34 @@
 \alias{conformal_lspm}
 \title{Least squares prediction machine}
 \usage{
-conformal_lspm(x, y, x_out)
+conformal_lspm(x, y, x_out, y_out = NULL)
 }
 \arguments{
+\item{x}{training covariates}
+
 \item{y}{training observations}
 
-\item{X}{training covariates}
+\item{x_out}{new covariates}
 
-\item{X_ts}{test covariates}
+\item{y_out}{new observations}
 }
 \value{
-LSPM fit based on y and X, applied to X_ts
+An object of class \code{conformal_fit} containing the LSPM fit.
 }
 \description{
-Computes conformal prediction set using the least squares prediction algorithm.
+Performs conformal prediction using the least squares prediction machine (LSPM) algorithm.
+}
+\references{
+\emph{Conformal predictive systems:}
+
+Vovk, V., Gammerman, A. and G. Shafer (2022):
+`Algorithmic learning in a random world',
+Second Series, Chapter 7.
+\doi{10.1007/978-3-031-06649-8}
+}
+\seealso{
+\link{cops} \link{cidr} \link{locb}
+}
+\author{
+Sam Allen
 }

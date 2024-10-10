@@ -1,18 +1,28 @@
 #' Least squares prediction machine
 #'
-#' Computes conformal prediction set using the least squares prediction algorithm.
+#' Performs conformal prediction using the least squares prediction machine (LSPM) algorithm.
 #'
-#' @param y training observations
-#' @param X training covariates
-#' @param X_ts test covariates
+#' @inheritParams cops
 #'
 #' @return
-#' LSPM fit based on y and X, applied to X_ts
+#' An object of class \code{conformal_fit} containing the LSPM fit.
+#'
+#'
+#' @references
+#'
+#' \emph{Conformal predictive systems:}
+#'
+#' Vovk, V., Gammerman, A. and G. Shafer (2022):
+#' `Algorithmic learning in a random world',
+#' Second Series, Chapter 7.
+#' \doi{10.1007/978-3-031-06649-8}
+#'
+#'
+#' @seealso \link{cops} \link{cidr} \link{locb}
+#'
+#' @author Sam Allen
 #'
 #' @name lspm
-NULL
-
-#' @rdname lspm
 #' @export
 conformal_lspm <- function(x, y, x_out, y_out = NULL) {
 

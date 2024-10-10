@@ -28,7 +28,14 @@ thickness(fit)
 \item{...}{additional arguments to other methods}
 }
 \value{
-An object of type 'conformal_fit'
+An object of class \code{conformal_fit}. This is a list containing
+the jump points of the conditional CDFs (\code{points}), which are either a matrix with
+\code{length(x_out)} columns or a vector of this length. The values of the
+conditional CDFs with the corresponding jump points are returned as matrices,
+where \code{cdf_lwr}, \code{cdf_upr}, and \code{cdf_oos} are the CDFs at the
+lower bound, upper bound, and interpolation of the two for the given value
+of \code{x_out[i]}, and \code{cdf_lcnf}, \code{cdf_ucnf} are the lower and
+upper bounds from the conformal IDR.
 }
 \description{
 Generic function for performing conformal prediction of real-valued outcomes.

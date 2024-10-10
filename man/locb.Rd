@@ -5,20 +5,44 @@
 \alias{conformal_bin}
 \title{Local binning}
 \usage{
-conformal_bin(x, y, x_out, k = 1)
+conformal_bin(x, y, x_out, y_out = NULL, k = 1)
 }
 \arguments{
+\item{x}{training covariates}
+
 \item{y}{training observations}
 
+\item{x_out}{new covariates}
+
+\item{y_out}{new observations}
+
 \item{k}{number of bins}
-
-\item{X}{training covariates}
-
-\item{X_ts}{test covariates}
 }
 \value{
-Local binning fit based on y and X, applied to X_ts
+An object of class \code{conformal_fit} containing the fit of the local binning.
 }
 \description{
-Computes conformal prediction set using local binning.
+Performs conformal prediction using local binning and Mondrian predictive systems.
+k-means clustering is used to bin the covariates, and separate predictive
+distributions are then constructed for observations in each bin.
+}
+\references{
+\emph{Conformal predictive systems:}
+
+Vovk, V., Gammerman, A. and G. Shafer (2022):
+`Algorithmic learning in a random world',
+Second Series, Chapter 7.
+\doi{10.1007/978-3-031-06649-8}
+
+\emph{Local binning:}
+
+Bostroem, H., Johansson, U. and T. Loefstroem (2021):
+`Mondrian conformal predictive systems',
+\emph{Proceedings of Machine Learning Research} 152: 1--15.
+}
+\seealso{
+\link{cops} \link{cidr} \link{locb}
+}
+\author{
+Sam Allen
 }

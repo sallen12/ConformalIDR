@@ -1,47 +1,53 @@
-#' Online conformal IDR
+#' Conformal IDR
 #'
-#' Computes IDR on a training data set and sequentially adds observations and
-#' updates the fit.
+#' Perform conformal isotonic distributional regression (IDR) to generate a probabilistic
+#' prediction for a real-valued outcome variable. IDR assumes an increasing relationship
+#' between the outcome and the covariate.
 #'
 #' @inheritParams cops
-#' @param online whether to sequentially update the training data set. Default
-#'     is \code{TRUE}. If \code{FALSE}, the same training data is used for
-#'     predicting with all the \code{x_out}.
-#' @param weights if \code{online} is \code{FALSE}, a vector of the same length
-#'     as \code{x} plus one containing non-negative weights, with the last
-#'     weight for the new covariate. If \code{online} is \code{TRUE}, a list
-#'     of vectors of weights, with lengths \code{length(x) + 1} up to
-#'     \code{length(x) + length(x_out)}. If omitted, equal weights are used.
+#' @param online logical specifying whether to sequentially update the training
+#'  data set. Default is \code{FALSE}. If \code{FALSE}, the same training data is
+#'  used for prediction of all the \code{x_out}.
+#' @param weights non-negative weights assigned to each covariate and
+#'  the new covariate. If omitted, equal weights are used. If \code{online} is \code{FALSE},
+#'  \code{weights} is a vector of length \code{length(x) + 1} with the last weight
+#'  corresponding to the new covariate. If \code{online} is \code{TRUE}, \code{weights} is a list
+#'  of vectors of weights, with lengths \code{length(x) + 1} up to \code{length(x) + length(x_out)}.
 #'
 #' @return
-#' Returns an object of class \code{conformal_idr}. It contains the jump points
-#' of the conditional CDFs, which are either a matrix with \code{length(x_out)}
-#' columns for \code{online == TRUE}, and a vector otherwise. The values of the
-#' conditional CDFs with the corresponding jump points are returned as matrices,
-#' where \code{cdf_lwr}, \code{cdf_upr}, and \code{cdf_oos} are the CDFs at the
-#' lower bound, upper bound, and interpolation of the two for the given value
-#' of \code{x_out[i]}, and \code{cdf_lcnf}, \code{cdf_ucnf} are the lower and
-#' upper bounds from the conformal IDR.
+#' An object of class \code{conformal_fit} containing the conformal IDR fit.
+#'
+#' @references
+#'
+#' \emph{Conformal predictive systems:}
+#'
+#' Vovk, V., Gammerman, A. and G. Shafer (2022):
+#' `Algorithmic learning in a random world',
+#' Second Series, Chapter 7.
+#' \doi{10.1007/978-3-031-06649-8}
+#'
+#' \emph{Isotonic distributional regression:}
+#'
+#' Henzi, A., Ziegel, J. and T. Gneiting (2022):
+#' `Isotonic distributional regression',
+#' \emph{Journal of the Royal Statistical Society: Series B} 83, 963--993.
+#' \doi{10.1111/rssb.12450}
+#'
+#' \emph{Conformal IDR:}
+#'
+#' Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
+#' `Conformal isotonic distributional regression'.
+#'
+#'
+#' @seealso \link{cops} \link{lspm} \link{locb}
+#'
+#' @author Sam Allen
 #'
 #' @note
 #' The sequential computation of ranks requires that g++ version >= 3.3.1 is
 #' installed. The code was run on a Ubuntu system and adaptations to lines 5
 #' and 6 of online_idr_computation may be necessary on different machines.
 #' @name cidr
-NULL
-
-n <- 1000
-n_out <- 10
-x <- round(rnorm(n), 2)
-y <- round(rnorm(n, x), 2)
-x_out <- round(rnorm(n_out), 2)
-y_out <- round(rnorm(n_out, x_out), 2)
-online <- TRUE
-weights <- vector("list", n_out)
-for (j in seq_along(weights)) weights[[j]] <- rep(1, n + j)
-
-
-#' @rdname cidr
 #' @export
 conformal_idr <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL) {
   x_order <- order(x)
