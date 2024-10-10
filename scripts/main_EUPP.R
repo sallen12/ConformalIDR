@@ -11,19 +11,19 @@ library(scoringRules)
 library(WeightedForecastVerification)
 library(lubridate)
 
-source("scripts/utility_funcs.R")
+source("scripts/ufuncs_eupp.R")
 
 
 ################################################################################
 ## load data
 
-load_temp_data(na_prop = 0) # stations with any missing data are removed
+load_data(na_prop = 0) # stations with any missing data are removed
 
 ## plot predicted vs observed temperature
-plot_temp_pred(filename = "plots/EUMN_data.png")
+plot_pred(filename = "plots/EUMN_data.png")
 
 ## plot stations
-plot_temp_map(lons, lats, rowMeans(ts_obs), filename = "plots/EUMN_stations.png")
+plot_map(lons, lats, rowMeans(ts_obs), filename = "plots/EUMN_stations.png")
 
 ## thresholds at which to evaluate threshold calibration
 t_vec <- tr_obs |> quantile(c(0.1, 0.25, 0.5, 0.75, 0.9)) |> unname()
@@ -55,22 +55,22 @@ for (j in seq_along(stat_ids)) {
     lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
     pcal[['lspm']][j, seas_ind] <- lspm_preds$pit
     score[['lspm']][j, seas_ind] <- lspm_preds$crps
-    F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, t_vec)
     thick[['lspm']][j, seas_ind] <- lspm_preds$thick
+    F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, t_vec)
 
     ### CIDR
     cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
     pcal[['cidr']][j, seas_ind] <- cidr_preds$pit
     score[['cidr']][j, seas_ind] <- cidr_preds$crps
-    F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, t_vec)
     thick[['cidr']][j, seas_ind] <- cidr_preds$thick
+    F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, t_vec)
 
     ### LB
     locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs, k[i, j])
     pcal[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$pit)
     score[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$crps)
-    F_t[['locb']][j, seas_ind, ] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
     thick[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$thick)
+    F_t[['locb']][j, seas_ind, ] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
   }
 }
 rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, scores)
@@ -129,10 +129,10 @@ rm(i, j, tr_ind, train, test, cidr_preds)
 ## results
 
 ## PIT histograms
-plot_pit_hists(pit, score, filename = "plots/EUMN_pitrd_comp.png")
+plot_pit_hists(pcal, score, filename = "plots/EUMN_pitrd_comp.png")
 
 ## PIT pp-plots
-plot_pit_pp(pit, score, filename = "plots/EUMN_pit_comp.png")
+plot_pit_pp(pcal, score, filename = "plots/EUMN_pit_comp.png")
 
 ## Threshold calibration diagrams
 plot_tcal(F_t, ts_obs, t_vec, filename = "plots/EUMN_tcal_comp.png")
