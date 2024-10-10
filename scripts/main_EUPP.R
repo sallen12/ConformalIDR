@@ -52,26 +52,25 @@ for (j in seq_along(stat_ids)) {
     test <- data.frame(obs = ts_obs[j, seas_ind], ens.mu = ts_fc_mn[j, seas_ind])
 
     ### LSPM
-    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    pcal[['lspm']][j, seas_ind] <- pit(lspm_preds, test$obs)
-    score[['lspm']][j, seas_ind] <- crps(lspm_preds, test$obs)
-    F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, test$obs, t_vec)
-    thick[['lspm']][j, seas_ind] <- thickness(lspm_preds)
+    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
+    pcal[['lspm']][j, seas_ind] <- lspm_preds$pit
+    score[['lspm']][j, seas_ind] <- lspm_preds$crps
+    F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, t_vec)
+    thick[['lspm']][j, seas_ind] <- lspm_preds$thick
 
     ### CIDR
-    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    pcal[['cidr']][j, seas_ind] <- pit(cidr_preds, test$obs)
-    score[['cidr']][j, seas_ind] <- crps(cidr_preds, test$obs)
-    F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, test$obs, t_vec)
-    thick[['cidr']][j, seas_ind] <- thickness(cidr_preds)
+    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
+    pcal[['cidr']][j, seas_ind] <- cidr_preds$pit
+    score[['cidr']][j, seas_ind] <- cidr_preds$crps
+    F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, t_vec)
+    thick[['cidr']][j, seas_ind] <- cidr_preds$thick
 
     ### LB
-    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, k[i_s, j])
-    scores <- eval_locb(locb_preds, test$obs, t_vec)
-    pcal[['locb']][j, seas_ind] <- scores$pit
-    score[['locb']][j, seas_ind] <- scores$crps
-    F_t[['locb']][j, seas_ind, ] <- scores$F_t
-    thick[['locb']][j, seas_ind] <- scores$thick
+    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs, k[i, j])
+    pcal[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$pit)
+    score[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$crps)
+    F_t[['locb']][j, seas_ind, ] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
+    thick[['locb']][j, seas_ind] <- sapply(locb_preds, function(x) x$thick)
   }
 }
 rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, scores)
@@ -117,7 +116,7 @@ for (j in 1) {#seq_along(stat_ids)) {
     cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
     pcal[['cidr']][j, i] <- pit(cidr_preds, test$obs)
     score[['cidr']][j, i] <- crps(cidr_preds, test$obs)
-    F_t[['cidr']][j, i, ] <- threshcal(cidr_preds, test$obs, t_vec)
+    F_t[['cidr']][j, i, ] <- threshcal(cidr_preds, t_vec)
     thick[['cidr']][j, i] <- thickness(cidr_preds)
 
   }

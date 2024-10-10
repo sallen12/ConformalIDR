@@ -3,10 +3,7 @@
 #' Computes IDR on a training data set and sequentially adds observations and
 #' updates the fit.
 #'
-#' @param x training covariates
-#' @param y training observations
-#' @param x_out new covariates
-#' @param y_out new observations
+#' @inheritParams cops
 #' @param online whether to sequentially update the training data set. Default
 #'     is \code{TRUE}. If \code{FALSE}, the same training data is used for
 #'     predicting with all the \code{x_out}.
@@ -46,8 +43,7 @@ for (j in seq_along(weights)) weights[[j]] <- rep(1, n + j)
 
 #' @rdname cidr
 #' @export
-conformal_idr <- function(x, y, x_out, online = FALSE, weights = NULL) {
-  y_out <- NA
+conformal_idr <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL) {
   x_order <- order(x)
   x <- x[x_order]
   y <- y[x_order]
@@ -87,7 +83,7 @@ conformal_idr <- function(x, y, x_out, online = FALSE, weights = NULL) {
     y_unique_r <- pos_x$y
     W <- pos_x[!(names(pos_x) %in% c("y", "ind"))]
     pos_x <- pos_x$ind
-    n_thr <- length(unique(c(y, y_out)))
+    n_thr <- length(unique(c(y, NA)))
     n_x <- length(unique(c(x, x_out)))
     out <- cidr_sequential(
       x_r = x_r,
@@ -97,7 +93,7 @@ conformal_idr <- function(x, y, x_out, online = FALSE, weights = NULL) {
       w_out = w_out,
       pos_x = pos_x,
       y_unique_r = y_unique_r,
-      y_out = y_out,
+      y_out = NA,
       n_thr = n_thr,
       n_x = n_x
     )
@@ -139,13 +135,24 @@ conformal_idr <- function(x, y, x_out, online = FALSE, weights = NULL) {
       w_out = w_out,
       pos_x = pos_x,
       y_unique_r = y_unique_r,
-      y_out = y_out,
+      y_out = NA,
       n_thr = n_thr,
       n_x = n_x
     )
   }
 
+  out$points <- replicate(length(x_out), out$points)
   out <- c(out, list(x = x, y = y, x_out = x_out))
+  out <- structure(out, class = "conformal_fit")
 
-  structure(out, class = "conformal_fit")
+  if (!is.null(y_out)) {
+    pcal <- pit(out, y_out)
+    score <- crps(out, y_out)
+    thick <- thickness(out)
+    out <- c(out, list(y_out = y_out, pit = pcal, crps = score, thick = thick))
+    out <- structure(out, class = "conformal_fit")
+  }
+
+  return(out)
 }
+

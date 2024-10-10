@@ -516,11 +516,11 @@ List cidr_sequential(
 
   return List::create(
     _["points"] = points,
-    _["cdf_lwr"] = cdf_lwr,
-    _["cdf_upr"] = cdf_upr,
-    _["cdf_oos"] = cdf_oos,
-    _["cdf_lcnf"] = cdf_lcnf,
-    _["cdf_ucnf"] = cdf_ucnf
+//    _["cdf_lwr"] = cdf_lwr,
+//    _["cdf_upr"] = cdf_upr,
+    _["cdf_crisp"] = cdf_oos,
+    _["cdf_lower"] = cdf_lcnf,
+    _["cdf_upper"] = cdf_ucnf
   );
 }
 
@@ -977,10 +977,10 @@ List cidr_static(
 
   return List::create(
     _["points"] = points,
-    _["cdf_lwr"] = cdf_lwr,
-    _["cdf_upr"] = cdf_upr,
-    _["cdf_oos"] = cdf_oos,
-    _["cdf_lcnf"] = cdf_lcnf,
-    _["cdf_ucnf"] = cdf_ucnf
+//    _["cdf_lwr"] = cdf_lwr,
+//    _["cdf_upr"] = cdf_upr,
+    _["cdf_crisp"] = cdf_oos,
+    _["cdf_lower"] = cdf_lcnf,
+    _["cdf_upper"] = cdf_ucnf
   );
 }
