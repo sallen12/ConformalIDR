@@ -86,8 +86,8 @@ pit.conformal_fit <- function(fit, obs) {
   n <- length(obs)
   if (is.vector(fit$points)) fit$points <- replicate(n, fit$points)
   pit0 <- function(x, y, z) stepfun(x = x, y = c(0, y))(z)
-  pit <- sapply(1:length(obs), function(i) pit0(fit$points[, i], fit$cdf_oos[, i], obs[i]))
-  return(pit)
+  out <- sapply(1:length(obs), function(i) pit0(fit$points[, i], fit$cdf_oos[, i], obs[i]))
+  return(out)
 }
 
 
@@ -95,14 +95,16 @@ pit.conformal_fit <- function(fit, obs) {
 crps.conformal_fit <- function(fit, obs) {
   n <- length(obs)
   if (is.vector(fit$points)) fit$points <- replicate(n, fit$points)
-  ens <- fit$points[-c(1, nrow(fit$points)), ] |> t()
+  m <- nrow(fit$points)
   if (length(obs) > 1) {
-    w <- pmax(apply(fit$cdf_oos, 2, diff)[-1, ], 0)  |> t()
+    ens <- fit$points[-c(1, m), ] |> t()
+    w <- pmax(apply(fit$cdf_oos, 2, diff)[-(m - 1), ], 0) |> t()
   } else {
-    w <- pmax(diff(fit$cdf_oos)[-1], 0)
+    ens <- fit$points[-c(1, m)]
+    w <- pmax(diff(fit$cdf_oos)[-(m - 1)], 0)
   }
-  crps <- scoringRules::crps_sample(obs, ens, w = w)
-  return(crps)
+  out <- scoringRules::crps_sample(obs, ens, w = w)
+  return(out)
 }
 
 
@@ -111,19 +113,19 @@ threshcal.conformal_fit <- function(fit, obs, thresholds) {
   n <- length(obs)
   if (is.vector(fit$points)) fit$points <- replicate(n, fit$points)
   pit0 <- function(x, y, z) stepfun(x = x, y = c(0, y))(z)
-  F_t <- sapply(thresholds, function(t) {
+  out <- sapply(thresholds, function(t) {
     sapply(1:length(obs), function(i) {
       pit0(fit$points[, i], fit$cdf_oos[, i], t)
     })
   })
-  return(F_t)
+  return(out)
 }
 
 
 #' @exportS3Method thickness conformal_fit
 thickness.conformal_fit <- function(fit) {
-  thicc <- apply(abs(fit$cdf_lcnf - fit$cdf_ucnf), 2, max)
-  return(thicc)
+  out <- apply(abs(fit$cdf_lcnf - fit$cdf_ucnf), 2, max)
+  return(out)
 }
 
 

@@ -224,11 +224,11 @@ plot_temp_map <- function(lons, lats, z, filename = NULL, title = NULL){
 # initialise lists to store verification data
 verif_lists <- function(ts_obs, t_vec) {
 
-  pit <<- list(lspm = array(NA, dim(ts_obs)),
-               cidr = array(NA, dim(ts_obs)),
-               locb = array(NA, dim(ts_obs)))
-  score <<- pit
-  thick <<- pit
+  pcal <<- list(lspm = array(NA, dim(ts_obs)),
+                cidr = array(NA, dim(ts_obs)),
+                locb = array(NA, dim(ts_obs)))
+  score <<- pcal
+  thick <<- pcal
 
   n_t <<- length(t_vec)
   F_t <<- list(lspm = array(NA, c(dim(ts_obs), n_t)),
@@ -313,7 +313,7 @@ plot_tcal <- function(F_t, ts_obs, t_vec, filename = NULL) {
 }
 
 # wrapper to plot thickness of conformal IDR bands
-plot_thick <- function(thick, type = "traffic", obs = NULL, times = NULL, x = NULL, filename = NULL) {
+plot_thick <- function(thick, type = "traffic", obs = NULL, times = NULL, x = NULL, ylab = "Temperature", filename = NULL) {
 
   if (is.matrix(thick)) thick <- as.vector(thick)
 
@@ -325,7 +325,7 @@ plot_thick <- function(thick, type = "traffic", obs = NULL, times = NULL, x = NU
     plot_obj <- ggplot(na.omit(df)) +
       geom_point(aes(x = time, y = o, fill = group), shape = 21) +
       scale_x_datetime(name = NULL) +
-      scale_y_continuous(name = "Temperature") +
+      scale_y_continuous(name = ylab) +
       scale_fill_manual(name = "Thickness", values = c("green4", "orange3", "red3")) +
       theme_bw() +
       theme(panel.grid = element_blank(),

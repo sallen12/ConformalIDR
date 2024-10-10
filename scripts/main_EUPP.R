@@ -9,6 +9,7 @@ library(ggplot2)
 library(zoo)
 library(scoringRules)
 library(WeightedForecastVerification)
+library(lubridate)
 
 source("scripts/utility_funcs.R")
 
@@ -52,14 +53,14 @@ for (j in seq_along(stat_ids)) {
 
     ### LSPM
     lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    pit[['lspm']][j, seas_ind] <- pit(lspm_preds, test$obs)
+    pcal[['lspm']][j, seas_ind] <- pit(lspm_preds, test$obs)
     score[['lspm']][j, seas_ind] <- crps(lspm_preds, test$obs)
     F_t[['lspm']][j, seas_ind, ] <- threshcal(lspm_preds, test$obs, t_vec)
     thick[['lspm']][j, seas_ind] <- thickness(lspm_preds)
 
     ### CIDR
     cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    pit[['cidr']][j, seas_ind] <- pit(cidr_preds, test$obs)
+    pcal[['cidr']][j, seas_ind] <- pit(cidr_preds, test$obs)
     score[['cidr']][j, seas_ind] <- crps(cidr_preds, test$obs)
     F_t[['cidr']][j, seas_ind, ] <- threshcal(cidr_preds, test$obs, t_vec)
     thick[['cidr']][j, seas_ind] <- thickness(cidr_preds)
@@ -67,7 +68,7 @@ for (j in seq_along(stat_ids)) {
     ### LB
     locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, k[i_s, j])
     scores <- eval_locb(locb_preds, test$obs, t_vec)
-    pit[['locb']][j, seas_ind] <- scores$pit
+    pcal[['locb']][j, seas_ind] <- scores$pit
     score[['locb']][j, seas_ind] <- scores$crps
     F_t[['locb']][j, seas_ind, ] <- scores$F_t
     thick[['locb']][j, seas_ind] <- scores$thick
@@ -79,48 +80,49 @@ rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, score
 ################################################################################
 ## prediction (rolling)
 
-## optimal number of bins for local binning
-k <- local_binning_cv()
+roll_index <- function(i, win_len, tr_times, ts_times) {
+  ind <- (i - win_len):(i + win_len)
+  roll_times <- ts_times[i] + days(c(-win_len, win_len))
+  tr_ind <- logical(length(tr_times))
+  for (k in -2:2) {
+    roll_times_mod <- roll_times + years(k)
+    c <- 0
+    while (any(is.na(roll_times_mod))) {
+      c <- c + 1
+      roll_times_mod <- ts_times[i] + days(c(-win_len-c, win_len+c)) + years(k)
+    }
+    tr_ind <- tr_ind | (tr_times >= roll_times_mod[1]  & tr_times <= roll_times_mod[2])
+  }
+  tr_ind <- replicate(20, tr_ind) |> t() |> as.vector()
+  return(tr_ind)
+}
 
 ## fit models
-for (j in seq_along(stat_ids)) {
+win_len <- 45
+for (j in 1) {#seq_along(stat_ids)) {
   st <- stat_ids[j]
-  for (i in 1:4) {
-    s <- c("Wi", "Sp", "Su", "Au")[i]
-    print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Season: ', s))
+  for (i in seq_along(ts_times)) {
+    print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Day: ', i))
 
     ### Get train data
-    seas_ind <- tr_seas == s
-    train <- data.frame(obs = tr_obs[j, seas_ind], ens.mu = tr_fc_mn[j, seas_ind])
-    seas_ind <- ts_seas == s
-    test <- data.frame(obs = ts_obs[j, seas_ind], ens.mu = ts_fc_mn[j, seas_ind])
+    #tr_ind <- lubridate::month(tr_times) %% 12
+    #tr_ind <- tr_ind %in% ((lubridate::month(ts_times[i]) + -1:1) %% 12)
+    #tr_ind <- replicate(20, tr_ind) |> t() |> as.vector()
 
-    ### LSPM
-    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    scores <- eval_conf(lspm_preds, test$obs, t_vec)
-    pit[['lspm']][j, seas_ind] <- scores$pit
-    score[['lspm']][j, seas_ind] <- scores$crps
-    F_t[['lspm']][j, seas_ind, ] <- scores$F_t
-    thick[['lspm']][j, seas_ind] <- scores$thick
+    tr_ind <- roll_index(i, win_len, tr_times, ts_times)
+    train <- data.frame(obs = tr_obs[j, tr_ind], ens.mu = tr_fc_mn[j, tr_ind])
+    test <- data.frame(obs = ts_obs[j, i], ens.mu = ts_fc_mn[j, i])
 
     ### CIDR
     cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    scores <- eval_conf(cidr_preds, test$obs, t_vec)
-    pit[['cidr']][j, seas_ind] <- scores$pit
-    score[['cidr']][j, seas_ind] <- scores$crps
-    F_t[['cidr']][j, seas_ind, ] <- scores$F_t
-    thick[['cidr']][j, seas_ind] <- scores$thick
+    pcal[['cidr']][j, i] <- pit(cidr_preds, test$obs)
+    score[['cidr']][j, i] <- crps(cidr_preds, test$obs)
+    F_t[['cidr']][j, i, ] <- threshcal(cidr_preds, test$obs, t_vec)
+    thick[['cidr']][j, i] <- thickness(cidr_preds)
 
-    ### LB
-    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, k[i_s, j])
-    scores <- eval_locb(locb_preds, test$obs, t_vec)
-    pit[['locb']][j, seas_ind] <- scores$pit
-    score[['locb']][j, seas_ind] <- scores$crps
-    F_t[['locb']][j, seas_ind, ] <- scores$F_t
-    thick[['locb']][j, seas_ind] <- scores$thick
   }
 }
-rm(i, j, s, st, seas_ind, train, test, lspm_preds, cidr_preds, locb_preds, scores)
+rm(i, j, tr_ind, train, test, cidr_preds)
 
 
 
@@ -141,6 +143,7 @@ st <- 1
 th_all <- thick[['cidr']]
 th_loc <- th_all[st, ]
 plot_thick(th_loc, type = "traffic", obs = ts_obs[st, ], times = ts_times, filename = "plots/EUMN_thick_obs_ts.png")
+plot_thick(th_loc, type = "traffic", obs = score[['cidr']][st, ], times = ts_times, ylab = "CRPS", filename = "plots/EUMN_thick_crps_ts.png")
 plot_thick(th_all, type = "hist", filename = "plots/EUMN_thick_cidr.png")
 plot_thick(th_loc, type = "scatter", x = ts_fc_mn[st, ], filename = "plots/EUMN_thick_ens.png")
 
