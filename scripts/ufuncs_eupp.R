@@ -123,7 +123,7 @@ load_data <- function(na_prop = 10) {
   n_loc <<- length(lats)
 
   ## plot example forecast trajectory
-  plot_obj <- plot_temp_example()
+  plot_obj <- plot_example()
 
 
   ## restrict attention to 24h forecasts
@@ -195,30 +195,49 @@ plot_pred <- function(filename = NULL) {
 }
 
 # plot map of stations
-plot_map <- function(lons, lats, z, filename = NULL, title = NULL){
+plot_map <- function(lons, lats, z, filename = NULL){
+  if (is.matrix(z)) z <- as.vector(z)
 
-  world <- map_data("world")
-  ind <- (world$long >= 0.95*min(lons) & world$long < 1.05*max(lons)) &
-    (world$lat >= 0.95*min(lats) & world$lat <= 1.05*max(lats))
-  world <- world[ind, ]
+    ## elevation data
+  dem <- geodata::elevation_global(res = 0.5, path = tempdir())
 
-  df <- data.frame(Lat = lats, Lon = lons, z = z)
-  plot_obj <- ggplot() + borders("world") +
-    geom_point(data = df, aes(x = Lon, y = Lat, fill = z), shape = 21, size = 2) +
-    coord_fixed(ylim = range(lats), xlim = range(lons)) +
-    scale_fill_fermenter(breaks = seq(5, 12, 1), name = "", palette = "Reds", direction = 1) +
-    theme_void() + theme(legend.title = element_blank(), legend.position = "bottom",
-                         panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
-                         legend.key.width = unit(0.3, "in")) +
-    ggtitle(title)
+  xmin <- 2.5  # Western edge
+  xmax <- 11 # Eastern edge
+  ymin <- 45 # Southern edge
+  ymax <- 54 # Northern edge
 
+  region_extent <- terra::ext(xmin, xmax, ymin, ymax)
+  cropped_dem <- terra::crop(dem, region_extent)
+  dem_df <- terra::as.data.frame(cropped_dem, xy = TRUE)
+
+  colnames(dem_df) <- c("lon", "lat", "elevation")
+
+  ## boundary data
+  eur_bords <- rnaturalearth::ne_countries(scale = "large", continent = "europe", returnclass = "sf")
+
+  ## plot data
+  df <- data.frame(lat = lats, lon = lons, z = z)
+
+  # Plot the elevation data
+  plot_obj <- ggplot() +
+    geom_raster(data = dem_df, aes(x = lon, y = lat, fill = elevation)) +
+    geom_sf(data = eur_bords, fill = NA, color = "black") +
+    geom_point(data = df, aes(lon, lat, color = z)) +
+    geom_point(data = df, aes(lon, lat), color = "black", shape = 21) +
+    scale_x_continuous(name = "Longitude", expand = c(0, 0), limits = c(xmin, xmax)) +
+    scale_y_continuous(name = "Latitude", expand = c(0, 0), limits = c(ymin, ymax)) +
+    scale_fill_gradient(name = "Elevation (m)", low = "white", high = "grey40") +
+    scale_color_gradientn(name = "Temp.", limits = c(4, 14), colors = colorRampPalette(c("white", "darkred"))(6)) +
+    theme_minimal() +
+    theme(panel.grid = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA)) +
+    guides(fill = "none")
 
   if (!is.null(filename)) {
-    ggsave(filename, plot_obj, width = 2, height = 2.5)
+    ggsave(filename, plot_obj, width = 3, height = 4)
+  } else {
+    return(plot_obj)
   }
-
-  return(plot_obj)
-
 }
 
 # initialise lists to store verification data

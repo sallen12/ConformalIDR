@@ -23,7 +23,7 @@ load_data(na_prop = 0) # stations with any missing data are removed
 plot_pred(filename = "plots/EUMN_data.png")
 
 ## plot stations
-plot_map(lons, lats, rowMeans(ts_obs), filename = "plots/EUMN_stations.png")
+plot_map(lons, lats, rowMeans(ts_obs), filename = "plots/EUMN_stations_alt.png")
 
 ## thresholds at which to evaluate threshold calibration
 t_vec <- tr_obs |> quantile(c(0.1, 0.25, 0.5, 0.75, 0.9)) |> unname()
@@ -96,28 +96,43 @@ roll_index <- function(i, win_len, tr_times, ts_times) {
   return(tr_ind)
 }
 
+k <- 10
+
 ## fit models
-win_len <- 45
-for (j in 1) {#seq_along(stat_ids)) {
+win_len <- 50
+for (j in seq_along(stat_ids)) {
   st <- stat_ids[j]
   for (i in seq_along(ts_times)) {
     print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Day: ', i))
 
     ### Get train data
-    #tr_ind <- lubridate::month(tr_times) %% 12
-    #tr_ind <- tr_ind %in% ((lubridate::month(ts_times[i]) + -1:1) %% 12)
-    #tr_ind <- replicate(20, tr_ind) |> t() |> as.vector()
-
     tr_ind <- roll_index(i, win_len, tr_times, ts_times)
     train <- data.frame(obs = tr_obs[j, tr_ind], ens.mu = tr_fc_mn[j, tr_ind])
     test <- data.frame(obs = ts_obs[j, i], ens.mu = ts_fc_mn[j, i])
 
+
+    ### LSPM
+    lspm_preds <- conformal_lspm(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
+    pcal[['lspm']][j, i] <- lspm_preds$pit
+    score[['lspm']][j, i] <- lspm_preds$crps
+    F_t[['lspm']][j, i, ] <- threshcal(lspm_preds, t_vec)
+    thick[['lspm']][j, i] <- lspm_preds$thick
+
+
     ### CIDR
-    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu)
-    pcal[['cidr']][j, i] <- pit(cidr_preds, test$obs)
-    score[['cidr']][j, i] <- crps(cidr_preds, test$obs)
+    cidr_preds <- conformal_idr(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs)
+    pcal[['cidr']][j, i] <- cidr_preds$pit
+    score[['cidr']][j, i] <- cidr_preds$crps
     F_t[['cidr']][j, i, ] <- threshcal(cidr_preds, t_vec)
-    thick[['cidr']][j, i] <- thickness(cidr_preds)
+    thick[['cidr']][j, i] <- cidr_preds$thick
+
+
+    ### LB
+    locb_preds <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = test$ens.mu, y_out = test$obs, k)
+    pcal[['locb']][j, i] <- sapply(locb_preds, function(x) x$pit)
+    score[['locb']][j, i] <- sapply(locb_preds, function(x) x$crps)
+    F_t[['locb']][j, i, ] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
+    thick[['locb']][j, i] <- sapply(locb_preds, function(x) x$thick)
 
   }
 }

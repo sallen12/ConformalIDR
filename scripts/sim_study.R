@@ -9,12 +9,18 @@ library(ggplot2)
 
 
 # wrapper to fit and evaluate the different prediction methods
-get_results <- function(N_tr = 500, x_ts, y_ts, anti = FALSE, k = 10) {
+get_results <- function(N_tr = 500, x_ts, y_ts, type = c("iso", "anti", "less"), k = 10) {
   start <- Sys.time()
+  type <- match.arg(type)
 
   x_tr <- runif(N_tr, 0, 10)
-  y_tr <- rgamma(N_tr, shape = sqrt(x_tr), scale = pmin(pmax(x_tr, 1), 6))
-  if (anti) x_tr <- 10 - x_tr
+  if (type == "anti") {
+    y_tr <- rgamma(N_tr, shape = sqrt(10 - x_tr), scale = pmin(pmax(10 - x_tr, 1), 6))
+  } else if (type == "less") {
+    y_tr <- rnorm(N_tr, mean = 2*x_tr + 5*sin(x_tr), sd = 0.2*x_tr)
+  } else {
+    y_tr <- rgamma(N_tr, shape = sqrt(x_tr), scale = pmin(pmax(x_tr, 1), 6))
+  }
 
   N_ts <- length(y_ts)
   pcal <- data.frame(replicate(3, numeric(N_ts)))
@@ -93,11 +99,11 @@ plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", filena
 }
 
 # function to plot example data
-plot_example <- function(x, y, filename = NULL) {
+plot_example <- function(x, y, filename = NULL, ylims = c(0, 80)) {
   df <- data.frame(x = x, y = y)
   plot_obj <- ggplot(df) + geom_point(aes(x = x, y = y), size = 0.5) +
     scale_x_continuous(name = "X", limits = c(0, 10)) +
-    scale_y_continuous(name = "Y", limits = c(0, 80)) +
+    scale_y_continuous(name = "Y", limits = ylims) +
     theme_bw() +
     theme(panel.grid = element_blank())
   if (!is.null(filename)) {
@@ -119,9 +125,13 @@ y_ts <- rgamma(N_ts, shape = sqrt(x_ts), scale = pmin(pmax(x_ts, 1), 6))
 # antitonic example
 y_ts_at <- rgamma(N_ts, shape = sqrt(10 - x_ts), scale = pmin(pmax(10 - x_ts, 1), 6))
 
+# less isotonic example
+y_ts_le <- rnorm(N_ts, mean = 2*x_ts + 5*sin(x_ts), sd = 0.2*x_ts)
+
 # plot example data
 plot_example(x_ts[1:1000], y_ts[1:1000], filename = "plots/simstudy_data.png")
-plot_example(x_ts[1:1000], y_ts_at[1:1000])
+plot_example(x_ts[1:1000], y_ts_at[1:1000], filename = "plots/simstudy_data_at.png")
+plot_example(x_ts[1:1000], y_ts_le[1:1000], ylims = c(0, 30), filename = "plots/simstudy_data_le.png")
 
 
 ################################################################################
@@ -129,10 +139,10 @@ plot_example(x_ts[1:1000], y_ts_at[1:1000])
 
 ##### results
 
-res_100 <- get_results(N_tr = 100, x_ts, y_ts) # 4 secs
-res_500 <- get_results(N_tr = 500, x_ts, y_ts) # 20 secs
-res_1000 <- get_results(N_tr = 1000, x_ts, y_ts) # 1 min
-res_2000 <- get_results(N_tr = 2000, x_ts, y_ts) # 5 mins
+res_100 <- get_results(N_tr = 100, x_ts, y_ts) # 10 secs
+res_500 <- get_results(N_tr = 500, x_ts, y_ts) # 40 secs
+res_1000 <- get_results(N_tr = 1000, x_ts, y_ts) # 2 mins
+res_2000 <- get_results(N_tr = 2000, x_ts, y_ts) # 10 mins
 
 
 ##### evaluate
@@ -152,10 +162,10 @@ plot_cal(F_t = res_2000$F_t, obs = y_ts, type = "threshcal", filename = "plots/s
 
 ##### results
 
-res_100_at <- get_results(N_tr = 100, x_ts, y_ts_at, anti = T) # 4 secs
-res_500_at <- get_results(N_tr = 500, x_ts, y_ts_at, anti = T) # 20 secs
-res_1000_at <- get_results(N_tr = 1000, x_ts, y_ts_at, anti = T) # 1 min
-res_2000_at <- get_results(N_tr = 2000, x_ts, y_ts_at, anti = T) # 5 mins
+res_100_at <- get_results(N_tr = 100, x_ts, y_ts_at, type = "anti")
+res_500_at <- get_results(N_tr = 500, x_ts, y_ts_at, type = "anti")
+res_1000_at <- get_results(N_tr = 1000, x_ts, y_ts_at, type = "anti")
+res_2000_at <- get_results(N_tr = 2000, x_ts, y_ts_at, type = "anti")
 
 
 ##### evaluate
@@ -170,12 +180,47 @@ plot_cal(res_2000_at$pit, res_2000_at$crps, filename = "plots/simstudy_2000_at.p
 plot_cal(F_t = res_2000_at$F_t, obs = y_ts_at, type = "threshcal", filename = "plots/simstudy_2000_tc_at.png")
 
 
-##### compare thicknesses
-df <- data.frame(thicc = c(res_100$thick$cidr, res_100_at$thick$cidr),
-                 mode = rep(c("Isotonic", "Antitonic"), each = N_ts))
+
+################################################################################
+## less isotonic
+
+##### results
+
+res_100_le <- get_results(N_tr = 100, x_ts, y_ts_le, type = "less")
+res_500_le <- get_results(N_tr = 500, x_ts, y_ts_le, type = "less")
+res_1000_le <- get_results(N_tr = 1000, x_ts, y_ts_le, type = "less")
+res_2000_le <- get_results(N_tr = 2000, x_ts, y_ts_le, type = "less")
+
+
+##### evaluate
+
+## probabilistic calibration
+plot_cal(res_100_le$pit, res_100_le$crps, filename = "plots/simstudy_100_le.png")
+plot_cal(res_500_le$pit, res_500_le$crps, filename = "plots/simstudy_500_le.png")
+plot_cal(res_1000_le$pit, res_1000_le$crps, filename = "plots/simstudy_1000_le.png")
+plot_cal(res_2000_le$pit, res_2000_le$crps, filename = "plots/simstudy_2000_le.png")
+
+## threshold calibration
+plot_cal(F_t = res_2000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_2000_tc_le.png")
+
+
+################################################################################
+## compare thicknesses
+
+df <- data.frame(thicc = c(res_100$thick$cidr, res_100_at$thick$cidr, res_100_le$thick$cidr),
+                 mode = rep(c(" Isotonic", "Antitonic", " Less isotonic"), each = N_ts))
 ggplot(df) + geom_boxplot(aes(x = mode, y = thicc)) +
   scale_x_discrete(name = "") +
   scale_y_continuous(name = "Thickness") +
   theme_bw() +
   theme(panel.grid = element_blank())
-ggsave("plots/simstudy_thick.png", width = 3, height = 3)
+ggsave("plots/simstudy_thick.png", width = 5, height = 3)
+
+
+################################################################################
+## plot examples
+
+x <- seq(0, 10, 0.01)
+
+
+

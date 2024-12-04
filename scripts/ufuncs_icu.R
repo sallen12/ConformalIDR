@@ -100,8 +100,7 @@ local_binning_cv <- function(k_vec = c(1, seq(10, 100, 10))) {
     val <- subset(data_val, icuCode == icu_vec[j])
 
     for (k in seq_along(k_vec)) {
-      locb_preds <- conformal_bin(train$los, train$index, val$index, k)
-      scores <- eval_locb(locb_preds, val$los, t_vec)
+      scores <- conformal_bin(x = train$index, y = train$los, x_out = val$index, y_out = val$los, k = k)
       score_mat[j, k] <- mean(scores$crps)
     }
   }
