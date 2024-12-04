@@ -22,10 +22,6 @@ thickness(fit)
 \item{y}{labels that are predicted by \code{fit}. Default is to use \code{fit$y_out}, if available}
 
 \item{thresholds}{thresholds at which to evaluate threshold calibration}
-
-\item{index}{index of the forecast to be plotted using \code{plot}}
-
-\item{...}{additional arguments to \code{plot}}
 }
 \value{
 \code{pit()} returns a vector of PIT values
@@ -85,7 +81,6 @@ thickness(fit2) |> mean()
 thresholds <- quantile(y, seq(0.1, 0.9, 0.1))
 F_t <- threshcal(fit, thresholds)
 F_t2 <- threshcal(fit2, thresholds, y_out)
-
 
 }
 \references{

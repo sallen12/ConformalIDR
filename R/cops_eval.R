@@ -10,8 +10,6 @@
 #' @param fit object of class \code{"cops"} to be evaluated
 #' @param y labels that are predicted by \code{fit}. Default is to use \code{fit$y_out}, if available
 #' @param thresholds thresholds at which to evaluate threshold calibration
-#' @param index index of the forecast to be plotted using \code{plot}
-#' @param ... additional arguments to \code{plot}
 #'
 #'
 #' @returns
@@ -80,7 +78,8 @@
 #' F_t <- threshcal(fit, thresholds)
 #' F_t2 <- threshcal(fit2, thresholds, y_out)
 #'
-#'
+#' @importFrom graphics lines
+#' @importFrom stats stepfun
 #' @name cops_eval
 NULL
 
@@ -113,7 +112,7 @@ thickness <- function(fit) {
 }
 
 
-#' @export
+#' @exportS3Method pit cops
 plot.cops <- function(fit, index = 1, ...) {
   points <- fit$points
   cdf_crisp <- fit$cdf_crisp

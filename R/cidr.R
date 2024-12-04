@@ -59,6 +59,7 @@
 #' The sequential computation of ranks requires that g++ version >= 3.3.1 is
 #' installed.
 #'
+#' @importFrom stats aggregate
 #' @name cidr
 #' @export
 conformal_idr <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL) {

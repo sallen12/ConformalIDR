@@ -5,7 +5,7 @@
 \alias{conformal_bin}
 \title{Conformal binning}
 \usage{
-conformal_bin(x, y, x_out, y_out = NULL, k = 1)
+conformal_bin(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL, k = 1)
 }
 \arguments{
 \item{x}{training covariates}
@@ -15,6 +15,12 @@ conformal_bin(x, y, x_out, y_out = NULL, k = 1)
 \item{x_out}{new covariates}
 
 \item{y_out}{new labels}
+
+\item{online}{logical specifying whether to sequentially update the training
+data set. Default is \code{FALSE}.}
+
+\item{weights}{non-negative weights assigned to each training covariate and the
+new covariate. If omitted, equal weights are used (the default).}
 
 \item{k}{number of bins}
 }
@@ -51,7 +57,6 @@ crps_vec <- c("k = 1" = sapply(fit1, function(x) x$crps) |> mean(),
               "k = 10" = sapply(fit, function(x) x$crps) |> mean(),
               "k = 100" = sapply(fit100, function(x) x$crps) |> mean())
 print(crps_vec)
-
 
 }
 \references{

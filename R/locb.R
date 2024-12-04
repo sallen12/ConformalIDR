@@ -57,10 +57,10 @@
 #'               "k = 100" = sapply(fit100, function(x) x$crps) |> mean())
 #' print(crps_vec)
 #'
-#'
+#' @importFrom stats kmeans
 #' @name locb
 #' @export
-conformal_bin <- function(x, y, x_out, y_out = NULL, k = 1) {
+conformal_bin <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL, k = 1) {
 
   check_cops_args(x, y, x_out, y_out, "locb", online, weights, k = k)
 
