@@ -3,24 +3,61 @@
 \name{lspm}
 \alias{lspm}
 \alias{conformal_lspm}
-\title{Least squares prediction machine}
+\title{Least Squares Prediction Machine}
 \usage{
-conformal_lspm(x, y, x_out, y_out = NULL)
+conformal_lspm(
+  x,
+  y,
+  x_out,
+  y_out = NULL,
+  online = FALSE,
+  weights = NULL,
+  student = TRUE
+)
 }
 \arguments{
 \item{x}{training covariates}
 
-\item{y}{training observations}
+\item{y}{training labels}
 
 \item{x_out}{new covariates}
 
-\item{y_out}{new observations}
+\item{y_out}{new labels}
+
+\item{online}{logical specifying whether to sequentially update the training
+data set. Default is \code{FALSE}.}
+
+\item{weights}{non-negative weights assigned to each training covariate and the
+new covariate. If omitted, equal weights are used (the default).}
+
+\item{student}{logical specifying whether to studentize the least squares residuals. Default is \code{TRUE}.}
 }
 \value{
-An object of class \code{conformal_fit} containing the LSPM fit.
+\code{conformal_lspm()} returns an object of class \code{"cops"} containing the
+LSPM fit. If \code{online = TRUE}, then a list of \code{"cops"} objects are returned.
+See \code{\link{cops}} for details.
 }
 \description{
-Performs conformal prediction using the least squares prediction machine (LSPM) algorithm.
+Derive conformal predictive systems using the Least Squares Prediction Machine (LSPM) algorithm.
+}
+\details{
+Details to be added here
+}
+\examples{
+
+n <- 1000
+x <- rnorm(n)
+y <- rnorm(n, x, exp(x))
+
+N <- 100
+x_out <- rnorm(N)
+y_out <- rnorm(N, x_out, exp(x_out))
+plot(x_out, y_out)
+
+fit <- conformal_lspm(x, y, x_out, y_out)
+plot(fit)
+
+
 }
 \references{
 \emph{Conformal predictive systems:}
@@ -31,7 +68,7 @@ Second Series, Chapter 7.
 \doi{10.1007/978-3-031-06649-8}
 }
 \seealso{
-\link{cops} \link{cidr} \link{locb}
+\code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
 }
 \author{
 Sam Allen

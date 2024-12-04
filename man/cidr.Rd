@@ -10,43 +10,57 @@ conformal_idr(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL)
 \arguments{
 \item{x}{training covariates}
 
-\item{y}{training observations}
+\item{y}{training labels}
 
 \item{x_out}{new covariates}
 
-\item{y_out}{new observations}
+\item{y_out}{new labels}
 
 \item{online}{logical specifying whether to sequentially update the training
-data set. Default is \code{FALSE}. If \code{FALSE}, the same training data is
-used for prediction of all the \code{x_out}.}
+data set. Default is \code{FALSE}.}
 
-\item{weights}{non-negative weights assigned to each covariate and
-the new covariate. If omitted, equal weights are used. If \code{online} is \code{FALSE},
-\code{weights} is a vector of length \code{length(x) + 1} with the last weight
-corresponding to the new covariate. If \code{online} is \code{TRUE}, \code{weights} is a list
-of vectors of weights, with lengths \code{length(x) + 1} up to \code{length(x) + length(x_out)}.}
+\item{weights}{non-negative weights assigned to each training covariate and the
+new covariate. If omitted, equal weights are used (the default).}
 }
 \value{
-An object of class \code{conformal_fit} containing the conformal IDR fit.
+\code{conformal_cidr()} returns an object of class \code{"cops"} containing the
+conformal IDR fit. If \code{online = TRUE}, then a list of \code{"cops"} objects are returned.
+See \code{\link{cops}} for details.
 }
 \description{
-Perform conformal isotonic distributional regression (IDR) to generate a probabilistic
-prediction for a real-valued outcome variable. IDR assumes an increasing relationship
-between the outcome and the covariate.
+Perform conformal isotonic distributional regression (IDR). Returns a conformal
+predictive system for a real-valued outcome variable, under the assumption that
+there is an increasing relationship between the outcome and the covariates.
+}
+\details{
+Details to be added here
 }
 \note{
 The sequential computation of ranks requires that g++ version >= 3.3.1 is
-installed. The code was run on a Ubuntu system and adaptations to lines 5
-and 6 of online_idr_computation may be necessary on different machines.
+installed.
+}
+\examples{
+
+n <- 1000
+x <- rnorm(n)
+y <- rnorm(n, x, exp(x))
+
+N <- 100
+x_out <- rnorm(N)
+y_out <- rnorm(N, x_out, exp(x_out))
+plot(x_out, y_out)
+
+fit <- conformal_idr(x, y, x_out, y_out)
+plot(fit)
+
+# assign heigher weights to more recent covariates
+weights <- c((1:n)/n, rep(1, N))
+fit <- conformal_idr(x, y, x_out, y_out, weights = weights)
+plot(fit)
+
+
 }
 \references{
-\emph{Conformal predictive systems:}
-
-Vovk, V., Gammerman, A. and G. Shafer (2022):
-`Algorithmic learning in a random world',
-Second Series, Chapter 7.
-\doi{10.1007/978-3-031-06649-8}
-
 \emph{Isotonic distributional regression:}
 
 Henzi, A., Ziegel, J. and T. Gneiting (2022):
@@ -60,7 +74,7 @@ Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
 `Conformal isotonic distributional regression'.
 }
 \seealso{
-\link{cops} \link{lspm} \link{locb}
+\code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
 }
 \author{
 Sam Allen

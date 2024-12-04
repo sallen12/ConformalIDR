@@ -3,45 +3,72 @@
 \name{locb}
 \alias{locb}
 \alias{conformal_bin}
-\title{Local binning}
+\title{Conformal binning}
 \usage{
 conformal_bin(x, y, x_out, y_out = NULL, k = 1)
 }
 \arguments{
 \item{x}{training covariates}
 
-\item{y}{training observations}
+\item{y}{training labels}
 
 \item{x_out}{new covariates}
 
-\item{y_out}{new observations}
+\item{y_out}{new labels}
 
 \item{k}{number of bins}
 }
 \value{
-An object of class \code{conformal_fit} containing the fit of the local binning.
+\code{conformal_bin()} returns a list of objects of class \code{"cops"} containing
+the conformal binning fit. See \code{\link{cops}} for details.
 }
 \description{
-Performs conformal prediction using local binning and Mondrian predictive systems.
-k-means clustering is used to bin the covariates, and separate predictive
-distributions are then constructed for observations in each bin.
+Derive conformal predictive systems based on binning. k-means clustering is used
+to bin the covariates, and separate predictive systems are then constructed for each bin.
+}
+\details{
+Details to be added here
+}
+\examples{
+
+n <- 1000
+x <- rnorm(n)
+y <- rnorm(n, x, exp(x))
+
+N <- 100
+x_out <- rnorm(N)
+y_out <- rnorm(N, x_out, exp(x_out))
+plot(x_out, y_out)
+
+fit <- conformal_bin(x, y, x_out, y_out, k = 10)
+fit1 <- conformal_bin(x, y, x_out, y_out)
+fit5 <- conformal_bin(x, y, x_out, y_out, k = 5)
+fit100 <- conformal_bin(x, y, x_out, y_out, k = 100)
+
+# compare for different k
+crps_vec <- c("k = 1" = sapply(fit1, function(x) x$crps) |> mean(),
+              "k = 5" = sapply(fit5, function(x) x$crps) |> mean(),
+              "k = 10" = sapply(fit, function(x) x$crps) |> mean(),
+              "k = 100" = sapply(fit100, function(x) x$crps) |> mean())
+print(crps_vec)
+
+
 }
 \references{
-\emph{Conformal predictive systems:}
+\emph{Conformal binning:}
 
-Vovk, V., Gammerman, A. and G. Shafer (2022):
-`Algorithmic learning in a random world',
-Second Series, Chapter 7.
-\doi{10.1007/978-3-031-06649-8}
+Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
+`Conformal isotonic distributional regression'.
 
-\emph{Local binning:}
+
+\emph{Mondrian predictive systems:}
 
 Bostroem, H., Johansson, U. and T. Loefstroem (2021):
 `Mondrian conformal predictive systems',
 \emph{Proceedings of Machine Learning Research} 152: 1--15.
 }
 \seealso{
-\link{cops} \link{cidr} \link{locb}
+\code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
 }
 \author{
 Sam Allen

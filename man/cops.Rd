@@ -2,22 +2,207 @@
 % Please edit documentation in R/cops.R
 \name{cops}
 \alias{cops}
-\title{Conformal prediction}
+\title{Conformal Predictive Systems}
 \usage{
-cops(x, y, x_out, y_out = NULL, method = c("cidr", "lspm", "locb"), ...)
+cops(
+  x,
+  y,
+  x_out,
+  y_out = NULL,
+  method = c("cidr", "lspm", "locb"),
+  online = FALSE,
+  weights = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{training covariates}
 
-\item{y}{training observations}
+\item{y}{training labels}
 
 \item{x_out}{new covariates}
 
-\item{y_out}{new observations}
+\item{y_out}{new labels}
+
+\item{method}{method used to perform conformal prediction. One of \code{"cidr"}
+(default), \code{"lspm"}, and \code{"locb"}.}
+
+\item{online}{logical specifying whether to sequentially update the training
+data set. Default is \code{FALSE}.}
+
+\item{weights}{non-negative weights assigned to each training covariate and the
+new covariate. If omitted, equal weights are used (the default).}
+
+\item{...}{additional arguments passed to the chosen method.}
 }
 \value{
-Conformal prediction object
+\code{cops()} returns an object of class \code{"cops"}, or a list of \code{"cops"}
+objects if \code{online = TRUE} or \code{method = "locb"}.
+
+An object of class \code{"cops"} is a list containing:
+\itemize{
+\item \code{points}, the jump points of the upper and lower bands of the conformal predictive system
+\item \code{cdf_lwr}, the lower band at the corresponding point value in \code{points}
+\item \code{cdf_upr}, the upper band at the corresponding point value in \code{points}
+\item \code{cdf_cri}, the crisp predictive distribution function between \code{cdf_lwr} and \code{cdf_upr}
+\item \code{thick}, the thickness of the conformal predictive system
+}
+
+If \code{y_out} is specified, then the list will additionally contain metrics that
+evaluate the performance of the predictive distribution \code{cdf_cri} evaluated using \code{y_out}.
+This includes:
+\itemize{
+\item \code{crps}, Continuous Ranked Probability Score (CRPS) values
+\item \code{pit}, Probability Integral Transform (PIT) values
+}
+
+The functions \code{crps} and \code{pit} can be applied to \code{"cops"} objects
+to obtain the CRPS and PIT values of the conformal predictive system. The function
+\code{threshcal} additionally allows one to assess whether or not the forecast is
+threshold calibrated. \code{thickness} returns the thickness of the predictive system,
+while \code{plot} displays the crisp predictive distribution function and corresponding
+lower and upper bands.
 }
 \description{
-Generic function for performing conformal prediction of real-valued outcomes.
+Generic function for generating conformal predictive systems when forecasting real-valued outcomes
+}
+\details{
+\subsection{Conformal Predictive Systems}{
+
+Suppose we are interested in forecasting \eqn{Y \in \mathbb{R}}. Conformal predictive
+systems provide a means to forecast \eqn{Y} with theoretical calibration guarantees.
+
+Conformal predictive systems are defined in terms of lower and upper bands,
+\eqn{\Pi_{l}} and \eqn{\Pi_{u}}, which are increasing functions between 0 and 1,
+such that \eqn{\Pi_{l}(z) \leq \Pi_{u}(z)} for all \eqn{z \in \mathbb{R}},
+\eqn{\Pi_{l}(z) \to 0} as \eqn{z \to -\infty}, and \eqn{\Pi_{u}(z) \to 1} as
+\eqn{z \to \infty}.
+
+The bands \eqn{\Pi_{l}} and \eqn{\Pi_{u}} are constructed such that they contain
+a calibrated predictive distribution \eqn{F}. That is, \eqn{F} is a cumulative
+distribution function (cdf) that is calibrated according to standard notions of
+probabilistic forecast calibration, and for which
+\eqn{\Pi_{l}(z) \leq F(z) \leq \Pi_{u}(z)} for all \eqn{z \in \mathbb{R}}.
+
+This calibration guarantee is only useful if the lower and upper bands are close
+to one another. The \emph{thickness} of a conformal predictive system is defined
+as the maximum distance between \eqn{\Pi_{l}} and \eqn{\Pi_{u}}.
+
+The lower and upper bands will typically depend on covariates \eqn{X}, and
+the predictive distribution \eqn{F} can be interpreted as an estimate of the
+conditional cdf of \eqn{Y} given \eqn{X}. In practice, we typically have a sequence
+of training covariates \eqn{X_{1}, \dots, X_{n}} and corresponding labels \eqn{Y_{1}, \dots, Y_{n}},
+and wish to predict a new label \eqn{Y_{n+1}} given \eqn{(X_{1}, Y_{1}), \dots, (X_{n}, Y_{n})},
+and a new covariate \eqn{X_{n+1}}.
+
+We may additionally want to predict additional labels \eqn{Y_{n+2}, Y_{n+3}, \dots} given covariates
+\eqn{X_{n+2}, X_{n+3}, \dots}. This can either be performed sequentially, i.e. \emph{online},
+so that the training data updates and the prediction for \eqn{Y_{N}}, for \eqn{N > n},
+depends on all previous covariate-label pairs, \eqn{(X_{1}, Y_{1}), \dots, (X_{N-1}, Y_{N-1})},
+and \eqn{X_{N}}; or statically, i.e. \emph{offline}, so that the training data does not update
+and the prediction for \eqn{Y_{N}} depends only on \eqn{(X_{1}, Y_{1}), \dots, (X_{n}, Y_{n})}
+and \eqn{X_{N}}, irrespective of \eqn{N}.
+
+Different methods are available to generate conformal predictive systems, i.e.
+to construct the lower and upper bands as a function of the covariates. This
+package provides the functionality for three different methods: the Least
+Squares Prediction Machine (LSPM), local binning, and conformal isotonic
+distributional regression (IDR). See the references below for further details.
+}
+
+\subsection{Package Functionality}{
+
+The function \code{cops()} provides a generic wrapper that calls one of
+\code{\link{lspm}}, \code{\link{locb}}, and \code{\link{cidr}}, depending on
+the argument \code{method}. \code{method} must be one of \code{"lspm"}, \code{"locb"},
+and \code{"cidr"}, corresponding to the LSPM, local binning, and conformal IDR, respectively.
+
+All methods take the following arguments:
+\itemize{
+\item \code{x}, a vector or matrix of training covariates \eqn{X_{1}, \dots, X_{n}}
+\item \code{y}, a vector of corresponding labels \eqn{Y_{1}, \dots, Y_{n}}
+\item \code{x_out}, a vector or matrix of new covariate(s) \eqn{X_{n+1}, X_{n+2}, \dots}
+\item \code{y_out}, a vector of new labels \eqn{Y_{n+1}, Y_{n+2}, \dots}
+\item \code{online}, a logical specifying whether prediction is performed online (\code{TRUE})
+or offline (\code{FALSE})
+}
+
+If \code{x} is a vector, it should have the same length as \code{y}, \eqn{n}. If \code{x} is
+a matrix, it should have \eqn{n} rows, with each row corresponding to the covariate vector
+\eqn{X_{i}}, for \eqn{i = 1, \dots, n}.
+
+Different weights can be assigned to different training covariates, allowing more
+recent observations to be emphasised during model training, for example. These
+weights can be entered using the \code{weights} argument. By default, \code{weights = NULL},
+in which case the same weight is assigned to all covariates.
+
+If \code{online} is \code{FALSE}, \code{weights} is a vector of length \code{length(x) + 1}
+with the last weight corresponding to the new covariate. If \code{online} is \code{TRUE},
+\code{weights} is a list of vectors of weights, with lengths \code{length(x) + 1} up
+to \code{length(x) + length(x_out)}.
+
+Additional arguments to the methods can be entered as variable arguments via \code{...}.
+Local binning, for example, requires an additional hyperparameter specifying the number
+of bins, while the LSPM can be "studentised" by specifying \code{student = TRUE}.
+See the individual help pages \code{\link{lspm}}, \code{\link{locb}}, and \code{\link{cidr}}
+for further details.
+
+\code{cops()} outputs an object of class \code{"cops"}, or a list of such objects
+if \code{online = TRUE} or \code{method = "locb"}. A \code{"cops"} object is a list
+containing the lower and upper bands of the estimated conformal predictive system, as
+well as a \emph{crisp} cdf that lies between the bands. This crisp cdf is essentially
+an estimate of the calibrated forecast distribution \eqn{F} described above.
+
+Note that when forecasting \eqn{Y_{n+1}}, the value of \eqn{Y_{n+1}} is obviously not used to
+make the prediction. Hence, the input \code{y_out} is not required to derive the
+conformal predictive systems. The default is therefore that \code{y_out = NULL}.
+
+If the new labels \code{y_out} are provided, then the \code{"cops"} object additionally
+returns evaluation metrics that quantify the performance of the conformal predictive
+system when predicting \eqn{Y_{n+1}, Y_{n+2}, \dots}. This includes the Continuous
+Ranked Probability Score (CRPS) of the crisp predictive distribution, as well as
+Probability Integral Transform (PIT) values to assess its (unconditional) calibration.
+}
+}
+\examples{
+
+n <- 1000
+x <- rnorm(n)
+y <- rnorm(n, x, exp(x))
+
+N <- 100
+x_out <- rnorm(N)
+y_out <- rnorm(N, x_out, exp(x_out))
+plot(x_out, y_out)
+
+fit <- cops(x, y, x_out, y_out)
+plot(fit)
+
+fit_lspm <- cops(x, y, x_out, y_out, method = "lspm")
+fit_locb <- cops(x, y, x_out, y_out, method = "locb", k = 10)
+
+crps_vec <- c(cidr = mean(fit$crps),
+              lspm = mean(fit_lspm$crps),
+              locb = sapply(fit_locb, function(x) x$crps) |> mean())
+print(crps_vec)
+
+}
+\references{
+\emph{Conformal predictive systems and the LSPM:}
+
+Vovk, V., Gammerman, A. and G. Shafer (2022):
+`Algorithmic learning in a random world',
+Second Series, Chapter 7.
+\doi{10.1007/978-3-031-06649-8}
+
+\emph{Conformal IDR and local binning:}
+
+Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
+`Conformal isotonic distributional regression'.
+}
+\seealso{
+\code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+}
+\author{
+Sam Allen
 }

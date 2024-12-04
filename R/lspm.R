@@ -1,11 +1,19 @@
-#' Least squares prediction machine
+#' Least Squares Prediction Machine
 #'
-#' Performs conformal prediction using the least squares prediction machine (LSPM) algorithm.
+#' Derive conformal predictive systems using the Least Squares Prediction Machine (LSPM) algorithm.
+#'
 #'
 #' @inheritParams cops
+#' @param student logical specifying whether to studentize the least squares residuals. Default is \code{TRUE}.
 #'
 #' @return
-#' An object of class \code{conformal_fit} containing the LSPM fit.
+#' \code{conformal_lspm()} returns an object of class \code{"cops"} containing the
+#' LSPM fit. If \code{online = TRUE}, then a list of \code{"cops"} objects are returned.
+#' See \code{\link{cops}} for details.
+#'
+#'
+#' @details
+#' Details to be added here
 #'
 #'
 #' @references
@@ -18,13 +26,30 @@
 #' \doi{10.1007/978-3-031-06649-8}
 #'
 #'
-#' @seealso \link{cops} \link{cidr} \link{locb}
+#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
 #'
 #' @author Sam Allen
 #'
+#' @examples
+#'
+#' n <- 1000
+#' x <- rnorm(n)
+#' y <- rnorm(n, x, exp(x))
+#'
+#' N <- 100
+#' x_out <- rnorm(N)
+#' y_out <- rnorm(N, x_out, exp(x_out))
+#' plot(x_out, y_out)
+#'
+#' fit <- conformal_lspm(x, y, x_out, y_out)
+#' plot(fit)
+#'
+#'
 #' @name lspm
 #' @export
-conformal_lspm <- function(x, y, x_out, y_out = NULL) {
+conformal_lspm <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL, student = TRUE) {
+
+  check_cops_args(x, y, x_out, y_out, "lspm", online, weights, student = student)
 
   fit <- lspm(y, as.matrix(x), as.matrix(x_out))
 
@@ -38,14 +63,14 @@ conformal_lspm <- function(x, y, x_out, y_out = NULL) {
   out <- list(points = points, cdf_crisp = cdf_crisp,
               cdf_lower = cdf_lower, cdf_upper = cdf_upper,
               x = x, y = y, x_out = x_out)
-  out <- structure(out, class = "conformal_fit")
+  out <- structure(out, class = "cops")
 
   if (!is.null(y_out)) {
     pcal <- pit(out, y_out)
     score <- crps(out, y_out)
     thick <- thickness(out)
     out <- c(out, list(y_out = y_out, pit = pcal, crps = score, thick = thick))
-    out <- structure(out, class = "conformal_fit")
+    out <- structure(out, class = "cops")
   }
 
   return(out)
