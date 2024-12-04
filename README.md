@@ -14,4 +14,4 @@ This package has not been submitted to CRAN, and can therefore be installed in R
 library(devtools)
 install_github("sallen12/ConformalIDR")
 ```
-The package is still in active development, and the vignette lists several possible extensions that could be implemented. Comments, suggestions, and input are more than welcome.
+The package is still in active development. Comments, suggestions, and input are more than welcome.
