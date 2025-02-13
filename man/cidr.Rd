@@ -74,7 +74,7 @@ Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
 `Conformal isotonic distributional regression'.
 }
 \seealso{
-\code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+\code{\link{cops}} \code{\link{lspm}} \code{\link{cbin}}
 }
 \author{
 Sam Allen

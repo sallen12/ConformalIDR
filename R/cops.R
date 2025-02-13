@@ -7,7 +7,7 @@
 #' @param x_out new covariates
 #' @param y_out new labels
 #' @param method method used to perform conformal prediction. One of \code{"cidr"}
-#' (default), \code{"lspm"}, and \code{"locb"}.
+#' (default), \code{"lspm"}, and \code{"cbin"}.
 #' @param online logical specifying whether to sequentially update the training
 #'  data set. Default is \code{FALSE}.
 #' @param weights non-negative weights assigned to each training covariate and the
@@ -17,7 +17,7 @@
 #'
 #' @return
 #' \code{cops()} returns an object of class \code{"cops"}, or a list of \code{"cops"}
-#' objects if \code{online = TRUE} or \code{method = "locb"}.
+#' objects if \code{online = TRUE} or \code{method = "cbin"}.
 #'
 #' An object of class \code{"cops"} is a list containing:
 #' - \code{points}, the jump points of the upper and lower bands of the conformal predictive system
@@ -88,8 +88,8 @@
 #' ## Package Functionality
 #'
 #' The function \code{cops()} provides a generic wrapper that calls one of
-#' \code{\link{lspm}}, \code{\link{locb}}, and \code{\link{cidr}}, depending on
-#' the argument \code{method}. \code{method} must be one of \code{"lspm"}, \code{"locb"},
+#' \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}, depending on
+#' the argument \code{method}. \code{method} must be one of \code{"lspm"}, \code{"cbin"},
 #' and \code{"cidr"}, corresponding to the LSPM, local binning, and conformal IDR, respectively.
 #'
 #' All methods take the following arguments:
@@ -117,11 +117,11 @@
 #' Additional arguments to the methods can be entered as variable arguments via \code{...}.
 #' Local binning, for example, requires an additional hyperparameter specifying the number
 #' of bins, while the LSPM can be "studentised" by specifying \code{student = TRUE}.
-#' See the individual help pages \code{\link{lspm}}, \code{\link{locb}}, and \code{\link{cidr}}
+#' See the individual help pages \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}
 #' for further details.
 #'
 #' \code{cops()} outputs an object of class \code{"cops"}, or a list of such objects
-#' if \code{online = TRUE} or \code{method = "locb"}. A \code{"cops"} object is a list
+#' if \code{online = TRUE} or \code{method = "cbin"}. A \code{"cops"} object is a list
 #' containing the lower and upper bands of the estimated conformal predictive system, as
 #' well as a \emph{crisp} cdf that lies between the bands. This crisp cdf is essentially
 #' an estimate of the calibrated forecast distribution \eqn{F} described above.
@@ -153,7 +153,7 @@
 #' `Conformal isotonic distributional regression'.
 #'
 #'
-#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{cbin}}
 #'
 #' @author Sam Allen
 #'
@@ -172,11 +172,11 @@
 #' plot(fit)
 #'
 #' fit_lspm <- cops(x, y, x_out, y_out, method = "lspm")
-#' fit_locb <- cops(x, y, x_out, y_out, method = "locb", k = 10)
+#' fit_cbin <- cops(x, y, x_out, y_out, method = "cbin", k = 10)
 #'
 #' crps_vec <- c(cidr = mean(fit$crps),
 #'               lspm = mean(fit_lspm$crps),
-#'               locb = sapply(fit_locb, function(x) x$crps) |> mean())
+#'               cbin = sapply(fit_cbin, function(x) x$crps) |> mean())
 #' print(crps_vec)
 #'
 #' @md
@@ -186,14 +186,14 @@ NULL
 
 #' @rdname cops
 #' @export
-cops <- function(x, y, x_out, y_out = NULL, method = c("cidr", "lspm", "locb"),
+cops <- function(x, y, x_out, y_out = NULL, method = c("cidr", "lspm", "cbin"),
                  online = FALSE, weights = NULL, ...) {
   method <- match.arg(method)
   if (method == "cidr") {
     conformal_idr(x, y, x_out, y_out, online, weights)
   } else if (method == "lspm") {
     conformal_lspm(x, y, x_out, y_out, online, weights, ...)
-  } else if (method == "locb") {
+  } else if (method == "cbin") {
     conformal_bin(x, y, x_out, y_out, online, weights, ...)
   }
 }

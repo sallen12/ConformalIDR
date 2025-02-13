@@ -31,7 +31,7 @@
 #' `Conformal isotonic distributional regression'.
 #'
 #'
-#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+#' @seealso \code{\link{cops}} \code{\link{lspm}} \code{\link{cbin}}
 #'
 #' @author Sam Allen
 #'

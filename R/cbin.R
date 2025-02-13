@@ -30,7 +30,7 @@
 #' \emph{Proceedings of Machine Learning Research} 152: 1--15.
 #'
 #'
-#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{lspm}}
 #'
 #' @author Sam Allen
 #'
@@ -58,24 +58,28 @@
 #' print(crps_vec)
 #'
 #' @importFrom stats kmeans
-#' @name locb
+#' @name cbin
 #' @export
 conformal_bin <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL, k = 1) {
 
-  check_cops_args(x, y, x_out, y_out, "locb", online, weights, k = k)
-
-  out <- kmeans(as.matrix(x), k)
-  tr_cl <- out$cluster
-  ts_cl <- clue::cl_predict(out, as.matrix(x_out)) |> as.vector()
-
-  points <- sapply(1:k, function(i) y[tr_cl == i] |> sort())
-  points <- lapply(points, function(x) c(-Inf, x, Inf))
-  cdfs <- lapply(points, function(x) sample_to_bounds(length(x) - 1))
+  check_cops_args(x, y, x_out, y_out, "cbin", online, weights, k = k)
 
   eval <- !is.null(y_out)
+
   out_list <- lapply(seq_along(x_out), function(i) {
-    bin <- ts_cl[i]
-    out <- c(points = points[bin], cdfs[[bin]],
+
+    xn1 <- c(x, x_out[i])
+    n1 <- length(xn1)
+
+    out <- kmeans(as.matrix(xn1), k)
+    tr_cl <- out$cluster[-n1]
+    ts_cl <- out$cluster[n1]
+
+    points <- sapply(1:k, function(cl) y[tr_cl == cl] |> sort())
+    points <- lapply(points, function(z) c(-Inf, z, Inf))
+    cdfs <- lapply(points, function(z) sample_to_bounds(length(z) - 1))
+
+    out <- c(points = points[ts_cl], cdfs[[ts_cl]],
              list(x = x, y = y, x_out = x_out[i]))
     out <- structure(out, class = "cops")
 
@@ -85,7 +89,7 @@ conformal_bin <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = N
       thick <- thickness(out)
       out <- c(out, list(y_out = y_out[i], pit = pcal, crps = score, thick = thick))
     }
-    out <- c(out, bins = list(x = tr_cl, x_out = ts_cl[i]))
+    out <- c(out, bins = list(x = tr_cl, x_out = ts_cl))
     structure(out, class = "cops")
   })
 

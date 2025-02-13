@@ -26,7 +26,7 @@
 #' \doi{10.1007/978-3-031-06649-8}
 #'
 #'
-#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{locb}}
+#' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{cbin}}
 #'
 #' @author Sam Allen
 #'

@@ -34,7 +34,7 @@
 #'
 #'
 #' @seealso
-#' \code{\link{cops}}, \code{\link{cidr}}, \code{\link{lspm}}, \code{\link{locb}}
+#' \code{\link{cops}}, \code{\link{cidr}}, \code{\link{lspm}}, \code{\link{cbin}}
 #'
 #' @author Sam Allen
 #'
