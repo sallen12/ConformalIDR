@@ -61,7 +61,8 @@ get_results <- function(N_tr = 500, x_ts, y_ts, type = c("iso", "anti", "less"),
 }
 
 # wrapper to plot and save PIT histograms, pp-plots, and threshold calibration plots
-plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", filename = NULL) {
+plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", vert = T, filename = NULL) {
+  ncol <- if (vert) {1} else {3}
   if (type == "pithist") {
     ## PIT histograms
     lspm_plot <- pit_hist(pcal[['lspm']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
@@ -69,27 +70,27 @@ plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", filena
     cidr_plot <- pit_hist(pcal[['cidr']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
                           title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
     locb_plot <- pit_hist(pcal[['locb']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                          title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = 1)
+                          title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = ncol)
   } else if (type == "pitpp") {
     ## PIT pp-plots
     lspm_plot <- pit_reldiag(pcal[['lspm']], title = paste("LSPM: CRPS =", round(mean(score[['lspm']], na.rm = T), 3)))
     cidr_plot <- pit_reldiag(pcal[['cidr']], title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
-    locb_plot <- pit_reldiag(pcal[['locb']], title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = 1)
+    locb_plot <- pit_reldiag(pcal[['locb']], title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = ncol)
   } else if (type == "threshcal") {
     ## threshold calibration
     t_vec <- quantile(obs, c(0.1, 0.25, 0.5, 0.75, 0.9))
-    lspm_plot <- tc_reldiag(F_t[['lspm']], obs, t_vec, title = "LSPM")
-    cidr_plot <- tc_reldiag(F_t[['cidr']], obs, t_vec, title = "CIDR")
-    locb_plot <- tc_reldiag(F_t[['locb']], obs, t_vec, title = "LB")
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
+    lspm_plot <- tc_reldiag(F_t[['lspm']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "LSPM")
+    cidr_plot <- tc_reldiag(F_t[['cidr']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CIDR")
+    locb_plot <- tc_reldiag(F_t[['locb']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CB")
+    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = ncol)
   } else {
     stop("argument 'type' must be one of 'pithist', 'pitpp', and 'threshcal'")
   }
 
   if (!is.null(filename)) {
-    if (type == "threshcal") {
+    if (type == "threshcal" || vert == F) {
       ggsave(plot = cal_plot, filename, width = 10.5, height = 3.5, dpi = 300)
     } else {
       ggsave(plot = cal_plot, filename, width = 2.5, height = 7.5, dpi = 300)
@@ -153,8 +154,11 @@ plot_cal(res_500$pit, res_500$crps, filename = "plots/simstudy_500.png")
 plot_cal(res_1000$pit, res_1000$crps, filename = "plots/simstudy_1000.png")
 plot_cal(res_2000$pit, res_2000$crps, filename = "plots/simstudy_2000.png")
 
+plot_cal(res_1000$pit, res_1000$crps, vert = F, filename = "plots/simstudy_1000_ho.png")
+
+
 ## threshold calibration
-plot_cal(F_t = res_2000$F_t, obs = y_ts, type = "threshcal", filename = "plots/simstudy_2000_tc.png")
+plot_cal(F_t = res_1000$F_t, obs = y_ts, type = "threshcal", filename = "plots/simstudy_1000_tc.png")
 
 
 ################################################################################
@@ -177,7 +181,7 @@ plot_cal(res_1000_at$pit, res_1000_at$crps, filename = "plots/simstudy_1000_at.p
 plot_cal(res_2000_at$pit, res_2000_at$crps, filename = "plots/simstudy_2000_at.png")
 
 ## threshold calibration
-plot_cal(F_t = res_2000_at$F_t, obs = y_ts_at, type = "threshcal", filename = "plots/simstudy_2000_tc_at.png")
+plot_cal(F_t = res_1000_at$F_t, obs = y_ts_at, type = "threshcal", filename = "plots/simstudy_1000_tc_at.png")
 
 
 
@@ -200,8 +204,10 @@ plot_cal(res_500_le$pit, res_500_le$crps, filename = "plots/simstudy_500_le.png"
 plot_cal(res_1000_le$pit, res_1000_le$crps, filename = "plots/simstudy_1000_le.png")
 plot_cal(res_2000_le$pit, res_2000_le$crps, filename = "plots/simstudy_2000_le.png")
 
+plot_cal(res_1000$pit, res_1000$crps, vert = F, filename = "plots/simstudy_1000_le_ho.png")
+
 ## threshold calibration
-plot_cal(F_t = res_2000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_2000_tc_le.png")
+plot_cal(F_t = res_1000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_1000_tc_le.png")
 
 
 ################################################################################
