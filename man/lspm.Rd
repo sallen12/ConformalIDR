@@ -5,15 +5,7 @@
 \alias{conformal_lspm}
 \title{Least Squares Prediction Machine}
 \usage{
-conformal_lspm(
-  x,
-  y,
-  x_out,
-  y_out = NULL,
-  online = FALSE,
-  weights = NULL,
-  student = TRUE
-)
+conformal_lspm(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL)
 }
 \arguments{
 \item{x}{training covariates}
@@ -29,8 +21,6 @@ data set. Default is \code{FALSE}.}
 
 \item{weights}{non-negative weights assigned to each training covariate and the
 new covariate. If omitted, equal weights are used (the default).}
-
-\item{student}{logical specifying whether to studentize the least squares residuals. Default is \code{TRUE}.}
 }
 \value{
 \code{conformal_lspm()} returns an object of class \code{"cops"} containing the
@@ -41,7 +31,7 @@ See \code{\link{cops}} for details.
 Derive conformal predictive systems using the Least Squares Prediction Machine (LSPM) algorithm.
 }
 \details{
-Details to be added here
+Details to be added here.
 }
 \examples{
 

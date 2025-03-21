@@ -256,7 +256,7 @@ verif_lists <- function(ts_obs, t_vec) {
 }
 
 # perform cross validation to find the optimal number of bins at each station
-local_binning_cv <- function(k_vec = c(1, seq(5, 100, 5))) {
+local_binning_cv <- function(k_vec = c(1, seq(5, 50, 5))) {
 
   score_mat <- array(NA, c(n_loc, length(k_vec), 4))
   n <- ncol(tr_obs)
@@ -268,19 +268,19 @@ local_binning_cv <- function(k_vec = c(1, seq(5, 100, 5))) {
       print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Season: ', s))
 
       ### Get train data
-      seas_ind <- (tr_seas == s) & !val_ind
-      train <- data.frame(obs = tr_obs[j, seas_ind], ens.mu = tr_fc_mn[j, seas_ind])
-      seas_ind <- (tr_seas == s) & val_ind
-      test <- data.frame(obs = tr_obs[j, seas_ind], ens.mu = tr_fc_mn[j, seas_ind])
+      ind <- (tr_seas == s) & !val_ind
+      train <- data.frame(obs = tr_obs[j, ind], ens.mu = tr_fc_mn[j, ind])
+      ind <- (tr_seas == s) & val_ind
+      val <- data.frame(obs = tr_obs[j, ind], ens.mu = tr_fc_mn[j, ind])
 
-      for (k in seq_along(k_vec)) {
-        locb_preds <- conformal_bin(y = train$obs, X = train$ens.mu, X_ts = test$ens.mu, k_vec[k])
-        scores <- eval_locb(locb_preds, test$obs, t_vec)
-        score_mat[j, k, i] <- mean(scores$crps)
+      for (l in seq_along(k_vec)) {
+        k <- k_vec[l]
+        scores <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = val$ens.mu, y_out = val$obs, k = k)
+        score_mat[j, l, i] <- sapply(scores, function(x) x$crps) |> mean()
       }
+
     }
   }
-  plot(k_vec, apply(score_mat, 2, mean))
   k <- sapply(1:n_loc, function(i) sapply(1:4, function(j) k_vec[which.min(score_mat[i, , j])]))
 
   return(k)
@@ -293,10 +293,10 @@ plot_pit_hists <- function(pit, score, filename = NULL) {
   cidr_plot <- pit_hist(pit[['cidr']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
                         title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
   locb_plot <- pit_hist(pit[['locb']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
-                        title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+                        title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
   pit_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
   if (!is.null(filename)) {
-    ggsave(plot = pit_plot, filename, width = 7.5, height = 2.5)
+    ggsave(plot = pit_plot, filename, width = 1.3*7.5, height = 1.3*2.5)
   } else {
     return(pit_plot)
   }
@@ -309,23 +309,23 @@ plot_pit_pp <- function(pit, score, filename = NULL) {
   cidr_plot <- pit_reldiag(pit[['cidr']],
                            title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
   locb_plot <- pit_reldiag(pit[['lspm']],
-                           title = paste("LB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
+                           title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
   pit_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
   if (!is.null(filename)) {
-    ggsave(plot = pit_plot, filename, width = 7.5, height = 2.5)
+    ggsave(plot = pit_plot, filename, width = 1.3*7.5, height = 1.3*2.5)
   } else {
     return(pit_plot)
   }
 }
 
-# wrapper to plot pit pp-plots
+# wrapper to plot tail calibration
 plot_tcal <- function(F_t, ts_obs, t_vec, filename = NULL) {
-  lspm_plot <- tc_reldiag(F_t[['lspm']], ts_obs, t_vec, title = "LSPM")
-  cidr_plot <- tc_reldiag(F_t[['cidr']], ts_obs, t_vec, title = "CIDR")
-  locb_plot <- tc_reldiag(F_t[['locb']], ts_obs, t_vec, title = "LB")
+  lspm_plot <- tc_reldiag(F_t[['lspm']], ts_obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "LSPM")
+  cidr_plot <- tc_reldiag(F_t[['cidr']], ts_obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CIDR")
+  locb_plot <- tc_reldiag(F_t[['locb']], ts_obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CB")
   tc_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
   if (!is.null(filename)) {
-    ggsave(plot = tc_plot, , width = 1.3*7.5, height = 1.3*2.5)
+    ggsave(plot = tc_plot, filename, width = 1.3*7.5, height = 1.3*2.5)
   } else {
     return(tc_plot)
   }

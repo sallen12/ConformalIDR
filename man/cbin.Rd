@@ -14,8 +14,8 @@ conformal_bin(
   y_est = NULL,
   online = FALSE,
   weights = NULL,
-  method = c("kmeans", "tree"),
-  k = NULL,
+  binning = c("kmeans", "tree"),
+  k = 1,
   cp = 0.01
 )
 }
@@ -38,7 +38,7 @@ data set. Default is \code{FALSE}.}
 \item{weights}{non-negative weights assigned to each training covariate and the
 new covariate. If omitted, equal weights are used (the default).}
 
-\item{method}{method used to construct the bins; either \code{"k-means"} (default) or \code{"tree"}}
+\item{binning}{binning method used to construct the bins; either \code{"k-means"} (default) or \code{"tree"}}
 
 \item{k}{number of bins (for k-means clustering)}
 
@@ -62,8 +62,8 @@ provides a means to generate predictive system bands that are guaranteed to cont
 an auto-calibrated forecast distribution. The information in the forecast depends
 on what binning is performed.
 
-The bins can either be constructed using k-means clustering (\code{method = "k-means"}),
-or using a regression tree (\code{method = "tree"}). k-means finds the bins that minimise
+The bins can either be constructed using k-means clustering (\code{binning = "k-means"}),
+or using a regression tree (\code{binning = "tree"}). k-means finds the bins that minimise
 the variance of the covariates assigned to the same bin, while the regression tree
 partitions the covariates such that the variance of the corresponding labels
 assigned to the same bin is minimised.
@@ -133,11 +133,11 @@ print(crps_vec_sp)
 
 ## split conformal (with regression tree)
 
-fit <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree")
-fit001 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.0001)
-fit01 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.001)
-fit05 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.005)
-fit1 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.1)
+fit <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree")
+fit001 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.0001)
+fit01 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.001)
+fit05 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.005)
+fit1 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.1)
 
 # compare for different cp
 crps_vec_sp_tr <- c("cp = 0.0001" = sapply(fit001, function(x) x$crps) |> mean(),

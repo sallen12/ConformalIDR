@@ -6,7 +6,7 @@
 #'
 #'
 #' @inheritParams cops
-#' @param method method used to construct the bins; either \code{"k-means"} (default) or \code{"tree"}
+#' @param binning binning method used to construct the bins; either \code{"k-means"} (default) or \code{"tree"}
 #' @param k number of bins (for k-means clustering)
 #' @param cp complexity parameter (for regression tree binning)
 #'
@@ -26,8 +26,8 @@
 #' an auto-calibrated forecast distribution. The information in the forecast depends
 #' on what binning is performed.
 #'
-#' The bins can either be constructed using k-means clustering (\code{method = "k-means"}),
-#' or using a regression tree (\code{method = "tree"}). k-means finds the bins that minimise
+#' The bins can either be constructed using k-means clustering (\code{binning = "k-means"}),
+#' or using a regression tree (\code{binning = "tree"}). k-means finds the bins that minimise
 #' the variance of the covariates assigned to the same bin, while the regression tree
 #' partitions the covariates such that the variance of the corresponding labels
 #' assigned to the same bin is minimised.
@@ -110,11 +110,11 @@
 #'
 #' ## split conformal (with regression tree)
 #'
-#' fit <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree")
-#' fit001 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.0001)
-#' fit01 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.001)
-#' fit05 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.005)
-#' fit1 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, method = "tree", cp = 0.1)
+#' fit <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree")
+#' fit001 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.0001)
+#' fit01 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.001)
+#' fit05 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.005)
+#' fit1 <- conformal_bin(x, y, x_out, y_out, x_est, y_est, binning = "tree", cp = 0.1)
 #'
 #' # compare for different cp
 #' crps_vec_sp_tr <- c("cp = 0.0001" = sapply(fit001, function(x) x$crps) |> mean(),
@@ -130,9 +130,9 @@
 #' @importFrom stats kmeans
 #' @name cbin
 #' @export
-conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL, online = FALSE, weights = NULL, method = c("kmeans", "tree"), k = NULL, cp = 0.01) {
-  method <- match.arg(method)
-  check_cops_args(x, y, x_out, y_out, x_est, y_est, "cbin", online, weights, method = method, k = k, cp = cp)
+conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL, online = FALSE, weights = NULL, binning = c("kmeans", "tree"), k = 1, cp = 0.01) {
+  binning <- match.arg(binning)
+  check_cops_args(x, y, x_out, y_out, x_est, y_est, "cbin", online, weights, binning = binning, k = k, cp = cp)
 
   eval <- !is.null(y_out)
   split <- !is.null(x_est)
@@ -140,11 +140,11 @@ conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL,
   if (split) {
     # split conformal - estimate clusters on the estimation sample
 
-    if (method == "kmeans") {
+    if (binning == "kmeans") {
       out <- kmeans(as.matrix(x_est), k)
       tr_cl <- clue::cl_predict(out, as.matrix(x)) |> as.vector()
       ts_cl <- clue::cl_predict(out, as.matrix(x_out)) |> as.vector()
-    } else if (method == "tree") {
+    } else if (binning == "tree") {
       dat <- data.frame(y = y_est, x = x_est)
       tree <- rpart::rpart(y ~ x, data = dat, method = "anova", control = rpart.control(cp = cp))
       leaf_ind <- tree$frame$var == "<leaf>"

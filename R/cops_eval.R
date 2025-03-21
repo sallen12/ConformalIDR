@@ -29,8 +29,10 @@
 #'
 #' @references
 #'
-#' Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
-#' `Conformal isotonic distributional regression'.
+#' Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2025):
+#' `In-sample calibration yields conformal calibration guarantees',
+#' \emph{arXiv pre-print} arXiv:2503.03841
+#' \doi{10.48550/arXiv.2503.03841}
 #'
 #'
 #' @seealso

@@ -4,7 +4,6 @@
 #'
 #'
 #' @inheritParams cops
-#' @param student logical specifying whether to studentize the least squares residuals. Default is \code{TRUE}.
 #'
 #' @return
 #' \code{conformal_lspm()} returns an object of class \code{"cops"} containing the
@@ -13,7 +12,7 @@
 #'
 #'
 #' @details
-#' Details to be added here
+#' Details to be added here.
 #'
 #'
 #' @references
@@ -47,9 +46,11 @@
 #'
 #' @name lspm
 #' @export
-conformal_lspm <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL, student = TRUE) {
+conformal_lspm <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = NULL) {
 
-  check_cops_args(x, y, x_out, y_out, "lspm", online, weights, student = student)
+  check_cops_args(x, y, x_out, y_out, x_est = NULL, y_est = NULL, "lspm", online, weights)
+
+  eval <- !is.null(y_out)
 
   fit <- lspm(y, as.matrix(x), as.matrix(x_out))
 
@@ -65,13 +66,14 @@ conformal_lspm <- function(x, y, x_out, y_out = NULL, online = FALSE, weights = 
               x = x, y = y, x_out = x_out)
   out <- structure(out, class = "cops")
 
-  if (!is.null(y_out)) {
+  if (eval) {
     pcal <- pit(out, y_out)
     score <- crps(out, y_out)
     thick <- thickness(out)
     out <- c(out, list(y_out = y_out, pit = pcal, crps = score, thick = thick))
     out <- structure(out, class = "cops")
   }
+
 
   return(out)
 }

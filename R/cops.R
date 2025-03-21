@@ -6,6 +6,8 @@
 #' @param y training labels
 #' @param x_out new covariates
 #' @param y_out new labels
+#' @param x_est covariates in the estimation set
+#' @param y_est labels in the estimation set
 #' @param method method used to perform conformal prediction. One of \code{"cidr"}
 #' (default), \code{"lspm"}, and \code{"cbin"}.
 #' @param online logical specifying whether to sequentially update the training
@@ -81,8 +83,18 @@
 #' Different methods are available to generate conformal predictive systems, i.e.
 #' to construct the lower and upper bands as a function of the covariates. This
 #' package provides the functionality for three different methods: the Least
-#' Squares Prediction Machine (LSPM), local binning, and conformal isotonic
+#' Squares Prediction Machine (LSPM), conformal binning, and conformal isotonic
 #' distributional regression (IDR). See the references below for further details.
+#'
+#' To speed up the computation of the conformal predictive systems, it is often
+#' useful to employ a \emph{splitting approach}. The splitting approach essentially
+#' divides the training data into an \emph{estimation set} and a \emph{calibration set}.
+#' The estimation set becomes \eqn{(X_{1}, Y_{1}), \dots, (X_{n_{0}}, Y_{n_{0}}))},
+#' while the calibration set is \eqn{(X_{n_{0}+1}, Y_{n_{0}+1}), \dots, (X_{n}, Y_{n})}.
+#' The estimation set is used to estimate the parameters of the methods, which are
+#' then applied to the calibration data to obtain conformal predictive systems for the
+#' test data.
+#'
 #'
 #'
 #' ## Package Functionality
@@ -90,13 +102,15 @@
 #' The function \code{cops()} provides a generic wrapper that calls one of
 #' \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}, depending on
 #' the argument \code{method}. \code{method} must be one of \code{"lspm"}, \code{"cbin"},
-#' and \code{"cidr"}, corresponding to the LSPM, local binning, and conformal IDR, respectively.
+#' and \code{"cidr"}, corresponding to the LSPM, conformal binning, and conformal IDR, respectively.
 #'
 #' All methods take the following arguments:
 #' - \code{x}, a vector or matrix of training covariates \eqn{X_{1}, \dots, X_{n}}
 #' - \code{y}, a vector of corresponding labels \eqn{Y_{1}, \dots, Y_{n}}
 #' - \code{x_out}, a vector or matrix of new covariate(s) \eqn{X_{n+1}, X_{n+2}, \dots}
 #' - \code{y_out}, a vector of new labels \eqn{Y_{n+1}, Y_{n+2}, \dots}
+#' - \code{x_est}, a vector or matrix of estimation covariate(s) if a split conformal approach is implemented, \eqn{X_{1}, \dots, X_{n_{0}}}
+#' - \code{y_est}, a vector of estimation labels if a split conformal approach is implemented, \eqn{Y_{1}, \dots, Y_{n_{0}}}
 #' - \code{online}, a logical specifying whether prediction is performed online (\code{TRUE})
 #'  or offline (\code{FALSE})
 #'
@@ -114,8 +128,12 @@
 #' \code{weights} is a list of vectors of weights, with lengths \code{length(x) + 1} up
 #' to \code{length(x) + length(x_out)}.
 #'
+#' If \code{x_est} and \code{y_est} are provided, then a split conformal approach is implemented,
+#' in which case \code{x_est} and \code{y_est} contain the data in the estimation set,
+#' and \code{x} and \code{y} contain the data in the calibration set.
+#'
 #' Additional arguments to the methods can be entered as variable arguments via \code{...}.
-#' Local binning, for example, requires an additional hyperparameter specifying the number
+#' Conformal binning, for example, requires an additional hyperparameter specifying the number
 #' of bins, while the LSPM can be "studentised" by specifying \code{student = TRUE}.
 #' See the individual help pages \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}
 #' for further details.
@@ -129,7 +147,6 @@
 #' Note that when forecasting \eqn{Y_{n+1}}, the value of \eqn{Y_{n+1}} is obviously not used to
 #' make the prediction. Hence, the input \code{y_out} is not required to derive the
 #' conformal predictive systems. The default is therefore that \code{y_out = NULL}.
-#'
 #' If the new labels \code{y_out} are provided, then the \code{"cops"} object additionally
 #' returns evaluation metrics that quantify the performance of the conformal predictive
 #' system when predicting \eqn{Y_{n+1}, Y_{n+2}, \dots}. This includes the Continuous
@@ -149,8 +166,10 @@
 #'
 #' \emph{Conformal IDR and local binning:}
 #'
-#' Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
-#' `Conformal isotonic distributional regression'.
+#' Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2025):
+#' `In-sample calibration yields conformal calibration guarantees',
+#' \emph{arXiv pre-print} arXiv:2503.03841
+#' \doi{10.48550/arXiv.2503.03841}
 #'
 #'
 #' @seealso \code{\link{cops}} \code{\link{cidr}} \code{\link{cbin}}
@@ -186,7 +205,7 @@ NULL
 
 #' @rdname cops
 #' @export
-cops <- function(x, y, x_out, y_out = NULL, method = c("cidr", "lspm", "cbin"),
+cops <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL, method = c("cidr", "lspm", "cbin"),
                  online = FALSE, weights = NULL, ...) {
   method <- match.arg(method)
   if (method == "cidr") {
@@ -194,12 +213,12 @@ cops <- function(x, y, x_out, y_out = NULL, method = c("cidr", "lspm", "cbin"),
   } else if (method == "lspm") {
     conformal_lspm(x, y, x_out, y_out, online, weights, ...)
   } else if (method == "cbin") {
-    conformal_bin(x, y, x_out, y_out, online, weights, ...)
+    conformal_bin(x, y, x_out, y_out, x_est, y_est, online, weights, ...)
   }
 }
 
 
-check_cops_args <- function(x, y, x_out, y_out, method, online, weights, ...) {
+check_cops_args <- function(x, y, x_out, y_out, x_est, y_est, method, online, weights, ...) {
 
   # y
   if (!is.vector(y) || !is.numeric(y)) stop("'y' must be a numeric vector")
@@ -235,6 +254,30 @@ check_cops_args <- function(x, y, x_out, y_out, method, online, weights, ...) {
       stop("'x' and 'x_out' must be of the same type")
     if (!is.null(y_out) && !identical(length(x_out), length(y_out)))
       stop("'x_out' and 'y_out' must have the same length")
+  }
+
+  # y_est
+  if (!is.null(y_est)) {
+    if (!is.vector(y_est) || !is.numeric(y_est)) stop("'y_est' must be a numeric vector")
+  }
+
+  # x_est
+  if (!is.null(x_est)) {
+    if (!(is.vector(x_est) || is.matrix(x_est)) || !is.numeric(x_est))
+      stop("'x_est' must be a numeric vector or matrix")
+    if (is.matrix(x_est)) {
+      if (!is.null(y_est) && !identical(nrow(x_est), length(y_out)))
+        stop("'x_est' must have the same number of rows as the length of 'y_est'")
+      if (is.vector(x))
+        stop("'x' and 'x_est' must be of the same type")
+      if (!identical(ncol(x), ncol(x_est)))
+        stop("'x' and 'x_est' must have the same number of columns")
+    } else {
+      if (is.matrix(x))
+        stop("'x' and 'x_est' must be of the same type")
+      if (!is.null(y_est) && !identical(length(x_est), length(y_est)))
+        stop("'x_est' and 'y_est' must have the same length")
+    }
   }
 
   # online
@@ -283,6 +326,19 @@ check_cops_args <- function(x, y, x_out, y_out, method, online, weights, ...) {
           stop("the elements of 'weights' must have lengths length(x) + 1, length(x) + 2, ..., length(x) + length(x_out)")
       }
     }
+  }
+
+  # method
+  if (!(method %in% c("cidr", "lspm", "cbin")))
+    stop("'method' must be one of 'cidr', 'lspm', 'cbin'")
+  if (method == "lspm") {
+    if (!is.null(x_est) || !is.null(y_est))
+      warning("'x_est' and 'y_est' are not used by 'conformal_lspm'")
+  }
+  if (method == "cbin") {
+    k <- list(...)$k
+    if (!is.vector(k) || !is.numeric(k) || length(k) > 1)
+      stop("'k' argument to 'conformal_bin' must be a single numerical value")
   }
 }
 

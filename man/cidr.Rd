@@ -33,7 +33,29 @@ predictive system for a real-valued outcome variable, under the assumption that
 there is an increasing relationship between the outcome and the covariates.
 }
 \details{
-Details to be added here
+Conformal IDR generates conformal predictive systems based on isotonic distributional
+regression (IDR). IDR is a non-parametric distributional regression procedure that
+assumes an isotonic (increasing) relationship between the covariates and the labels.
+Conformal IDR provides a means to generate predictive system bands that are guaranteed
+to contain an isotonically-calibrated forecast distribution.
+
+Since conformal IDR requires an ordering of the covariates, it is easiest to implement
+when the covariates are univariate real-valued (i.e. \code{x} is a numeric vector).
+In the split conformal setting, the estimation data (\code{x_est} and \code{y_est})
+can be used to fit a univariate single index model for the label given the covariates.
+This model can then be applied to the training covariates (and new covariate) to
+obtain univariate index values, and conformal IDR can then be implemented assuming an
+isotonic relationship between these index values and the label.
+
+If estimation data (\code{x_est} and \code{y_est}) is provided, and \code{x} is a matrix
+or data frame containing multiple covariate variables, then a linear model is fit to the
+estimation data, which is used to convert \code{x} and \code{x_out} to univariate index values.
+Conformal IDR is performed using these index values.
+
+The linear model is fit using all covariate variables using \code{\link{lm}}.
+If a different index model is desired, then this should be fit manually to \code{x_est}
+and \code{y_est}, before inputting the resulting index values as \code{x} and
+\code{x_out} to \code{conformal_idr()} in the full setting (without \code{x_est} and \code{y_est}).
 }
 \note{
 The sequential computation of ranks requires that g++ version >= 3.3.1 is
@@ -70,8 +92,10 @@ Henzi, A., Ziegel, J. and T. Gneiting (2022):
 
 \emph{Conformal IDR:}
 
-Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
-`Conformal isotonic distributional regression'.
+Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2025):
+`In-sample calibration yields conformal calibration guarantees',
+\emph{arXiv pre-print} arXiv:2503.03841
+\doi{10.48550/arXiv.2503.03841}
 }
 \seealso{
 \code{\link{cops}} \code{\link{lspm}} \code{\link{cbin}}

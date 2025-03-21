@@ -9,6 +9,8 @@ cops(
   y,
   x_out,
   y_out = NULL,
+  x_est = NULL,
+  y_est = NULL,
   method = c("cidr", "lspm", "cbin"),
   online = FALSE,
   weights = NULL,
@@ -23,6 +25,10 @@ cops(
 \item{x_out}{new covariates}
 
 \item{y_out}{new labels}
+
+\item{x_est}{covariates in the estimation set}
+
+\item{y_est}{labels in the estimation set}
 
 \item{method}{method used to perform conformal prediction. One of \code{"cidr"}
 (default), \code{"lspm"}, and \code{"cbin"}.}
@@ -106,8 +112,17 @@ and \eqn{X_{N}}, irrespective of \eqn{N}.
 Different methods are available to generate conformal predictive systems, i.e.
 to construct the lower and upper bands as a function of the covariates. This
 package provides the functionality for three different methods: the Least
-Squares Prediction Machine (LSPM), local binning, and conformal isotonic
+Squares Prediction Machine (LSPM), conformal binning, and conformal isotonic
 distributional regression (IDR). See the references below for further details.
+
+To speed up the computation of the conformal predictive systems, it is often
+useful to employ a \emph{splitting approach}. The splitting approach essentially
+divides the training data into an \emph{estimation set} and a \emph{calibration set}.
+The estimation set becomes \eqn{(X_{1}, Y_{1}), \dots, (X_{n_{0}}, Y_{n_{0}}))},
+while the calibration set is \eqn{(X_{n_{0}+1}, Y_{n_{0}+1}), \dots, (X_{n}, Y_{n})}.
+The estimation set is used to estimate the parameters of the methods, which are
+then applied to the calibration data to obtain conformal predictive systems for the
+test data.
 }
 
 \subsection{Package Functionality}{
@@ -115,7 +130,7 @@ distributional regression (IDR). See the references below for further details.
 The function \code{cops()} provides a generic wrapper that calls one of
 \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}, depending on
 the argument \code{method}. \code{method} must be one of \code{"lspm"}, \code{"cbin"},
-and \code{"cidr"}, corresponding to the LSPM, local binning, and conformal IDR, respectively.
+and \code{"cidr"}, corresponding to the LSPM, conformal binning, and conformal IDR, respectively.
 
 All methods take the following arguments:
 \itemize{
@@ -123,6 +138,8 @@ All methods take the following arguments:
 \item \code{y}, a vector of corresponding labels \eqn{Y_{1}, \dots, Y_{n}}
 \item \code{x_out}, a vector or matrix of new covariate(s) \eqn{X_{n+1}, X_{n+2}, \dots}
 \item \code{y_out}, a vector of new labels \eqn{Y_{n+1}, Y_{n+2}, \dots}
+\item \code{x_est}, a vector or matrix of estimation covariate(s) if a split conformal approach is implemented, \eqn{X_{1}, \dots, X_{n_{0}}}
+\item \code{y_est}, a vector of estimation labels if a split conformal approach is implemented, \eqn{Y_{1}, \dots, Y_{n_{0}}}
 \item \code{online}, a logical specifying whether prediction is performed online (\code{TRUE})
 or offline (\code{FALSE})
 }
@@ -141,8 +158,12 @@ with the last weight corresponding to the new covariate. If \code{online} is \co
 \code{weights} is a list of vectors of weights, with lengths \code{length(x) + 1} up
 to \code{length(x) + length(x_out)}.
 
+If \code{x_est} and \code{y_est} are provided, then a split conformal approach is implemented,
+in which case \code{x_est} and \code{y_est} contain the data in the estimation set,
+and \code{x} and \code{y} contain the data in the calibration set.
+
 Additional arguments to the methods can be entered as variable arguments via \code{...}.
-Local binning, for example, requires an additional hyperparameter specifying the number
+Conformal binning, for example, requires an additional hyperparameter specifying the number
 of bins, while the LSPM can be "studentised" by specifying \code{student = TRUE}.
 See the individual help pages \code{\link{lspm}}, \code{\link{cbin}}, and \code{\link{cidr}}
 for further details.
@@ -156,7 +177,6 @@ an estimate of the calibrated forecast distribution \eqn{F} described above.
 Note that when forecasting \eqn{Y_{n+1}}, the value of \eqn{Y_{n+1}} is obviously not used to
 make the prediction. Hence, the input \code{y_out} is not required to derive the
 conformal predictive systems. The default is therefore that \code{y_out = NULL}.
-
 If the new labels \code{y_out} are provided, then the \code{"cops"} object additionally
 returns evaluation metrics that quantify the performance of the conformal predictive
 system when predicting \eqn{Y_{n+1}, Y_{n+2}, \dots}. This includes the Continuous
@@ -197,8 +217,10 @@ Second Series, Chapter 7.
 
 \emph{Conformal IDR and local binning:}
 
-Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2024+):
-`Conformal isotonic distributional regression'.
+Allen, S., Gavrilopolous, G., Henzi, A. and J. Ziegel (2025):
+`In-sample calibration yields conformal calibration guarantees',
+\emph{arXiv pre-print} arXiv:2503.03841
+\doi{10.48550/arXiv.2503.03841}
 }
 \seealso{
 \code{\link{cops}} \code{\link{cidr}} \code{\link{cbin}}

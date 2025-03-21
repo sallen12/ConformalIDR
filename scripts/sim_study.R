@@ -154,11 +154,11 @@ plot_cal(res_500$pit, res_500$crps, filename = "plots/simstudy_500.png")
 plot_cal(res_1000$pit, res_1000$crps, filename = "plots/simstudy_1000.png")
 plot_cal(res_2000$pit, res_2000$crps, filename = "plots/simstudy_2000.png")
 
-plot_cal(res_1000$pit, res_1000$crps, vert = F, filename = "plots/simstudy_1000_ho.png")
+plot_cal(res_2000$pit, res_2000$crps, vert = F, filename = "plots/simstudy_2000_ho.png")
 
 
 ## threshold calibration
-plot_cal(F_t = res_1000$F_t, obs = y_ts, type = "threshcal", filename = "plots/simstudy_1000_tc.png")
+plot_cal(F_t = res_2000$F_t, obs = y_ts, type = "threshcal", filename = "plots/simstudy_2000_tc.png")
 
 
 ################################################################################
@@ -204,10 +204,10 @@ plot_cal(res_500_le$pit, res_500_le$crps, filename = "plots/simstudy_500_le.png"
 plot_cal(res_1000_le$pit, res_1000_le$crps, filename = "plots/simstudy_1000_le.png")
 plot_cal(res_2000_le$pit, res_2000_le$crps, filename = "plots/simstudy_2000_le.png")
 
-plot_cal(res_1000$pit, res_1000$crps, vert = F, filename = "plots/simstudy_1000_le_ho.png")
+plot_cal(res_2000_le$pit, res_2000_le$crps, vert = F, filename = "plots/simstudy_2000_le_ho.png")
 
 ## threshold calibration
-plot_cal(F_t = res_1000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_1000_tc_le.png")
+plot_cal(F_t = res_2000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_2000_tc_le.png")
 
 
 ################################################################################
@@ -221,12 +221,4 @@ ggplot(df) + geom_boxplot(aes(x = mode, y = thicc)) +
   theme_bw() +
   theme(panel.grid = element_blank())
 ggsave("plots/simstudy_thick.png", width = 5, height = 3)
-
-
-################################################################################
-## plot examples
-
-x <- seq(0, 10, 0.01)
-
-
 
