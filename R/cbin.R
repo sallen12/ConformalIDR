@@ -46,8 +46,8 @@
 #' regression tree to be performed; a smaller complexity parameter therefore results in a more complex
 #' tree with more bins.
 #'
-#' The k-means algorithm is implemented using \code{\link{stats::kmeans}} and \code{\link{clue::cl_predict()}},
-#' while the regression tree leverages \code{\link{rpart::rpart}}.
+#' The k-means algorithm is implemented using \code{\link[stats]{kmeans}} and \code{\link[clue]{cl_predict}},
+#' while the regression tree leverages \code{\link[rpart]{rpart}}.
 #' Further details can be found in the respective help pages.
 #'
 #'
@@ -127,7 +127,6 @@
 #' print(c(crps_vec_sp, crps_vec_sp_tr))
 #'
 #'
-#' @importFrom stats kmeans
 #' @name cbin
 #' @export
 conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL, online = FALSE, weights = NULL, binning = c("kmeans", "tree"), k = 1, cp = 0.01) {
@@ -141,18 +140,18 @@ conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL,
     # split conformal - estimate clusters on the estimation sample
 
     if (binning == "kmeans") {
-      out <- kmeans(as.matrix(x_est), k)
+      out <- stats::kmeans(as.matrix(x_est), k)
       tr_cl <- clue::cl_predict(out, as.matrix(x)) |> as.vector()
       ts_cl <- clue::cl_predict(out, as.matrix(x_out)) |> as.vector()
     } else if (binning == "tree") {
       dat <- data.frame(y = y_est, x = x_est)
-      tree <- rpart::rpart(y ~ x, data = dat, method = "anova", control = rpart.control(cp = cp))
+      tree <- rpart::rpart(y ~ x, data = dat, method = "anova", control = rpart::rpart.control(cp = cp))
       leaf_ind <- tree$frame$var == "<leaf>"
       k <- sum(leaf_ind)
       tree$frame$yval[!leaf_ind] <- NA
       tree$frame$yval[leaf_ind] <- 1:k
-      tr_cl <- predict(tree, newdata = data.frame(x = x)) |> unname()
-      ts_cl <- predict(tree, newdata = data.frame(x = x_out)) |> unname()
+      tr_cl <- stats::predict(tree, newdata = data.frame(x = x)) |> unname()
+      ts_cl <- stats::predict(tree, newdata = data.frame(x = x_out)) |> unname()
     }
 
     points <- sapply(1:k, function(i) y[tr_cl == i] |> sort())
@@ -186,7 +185,7 @@ conformal_bin <- function(x, y, x_out, y_out = NULL, x_est = NULL, y_est = NULL,
       xn1 <- c(x, x_out[i])
       n1 <- length(xn1)
 
-      out <- kmeans(as.matrix(xn1), k)
+      out <- stats::kmeans(as.matrix(xn1), k)
       tr_cl <- out$cluster[-n1]
       ts_cl <- out$cluster[n1]
 

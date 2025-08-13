@@ -145,21 +145,21 @@ plot.cops <- function(fit, index = 1, ...) {
 
 
 #' @exportS3Method pit cops
-pit.cops <- function(fit, obs = fit$y_out) {
-  n <- length(obs)
+pit.cops <- function(fit, y = fit$y_out) {
+  n <- length(y)
   pit0 <- function(x, y, z) stepfun(x = x, y = c(0, y))(z)
   if (n == 1) {
-    out <- pit0(fit$points, fit$cdf_crisp, obs)
+    out <- pit0(fit$points, fit$cdf_crisp, y)
   } else {
-    out <- sapply(1:length(obs), function(i) pit0(fit$points[, i], fit$cdf_crisp[, i], obs[i]))
+    out <- sapply(1:length(y), function(i) pit0(fit$points[, i], fit$cdf_crisp[, i], y[i]))
   }
   return(out)
 }
 
 
 #' @exportS3Method crps cops
-crps.cops <- function(fit, obs = fit$y_out) {
-  n <- length(obs)
+crps.cops <- function(fit, y = fit$y_out) {
+  n <- length(y)
 
   if (n > 1) {
     m <- nrow(fit$points)
@@ -170,18 +170,18 @@ crps.cops <- function(fit, obs = fit$y_out) {
     ens <- fit$points[-c(1, m)]
     w <- pmax(diff(fit$cdf_crisp)[-(m - 1)], 0)
   }
-  out <- scoringRules::crps_sample(obs, ens, w = w)
+  out <- scoringRules::crps_sample(y, ens, w = w)
   return(out)
 }
 
 
 #' @exportS3Method threshcal cops
-threshcal.cops <- function(fit, thresholds, obs = fit$y_out) {
-  n <- length(obs)
+threshcal.cops <- function(fit, thresholds, y = fit$y_out) {
+  n <- length(y)
   pit0 <- function(x, y, z) stepfun(x = x, y = c(0, y))(z)
   if (n > 1) {
     out <- sapply(thresholds, function(t) {
-      sapply(1:length(obs), function(i) {
+      sapply(1:length(y), function(i) {
         pit0(fit$points[, i], fit$cdf_crisp[, i], t)
       })
     })

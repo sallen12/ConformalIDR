@@ -1,13 +1,14 @@
 Package: ConformalIDR
 Type: Package
 Title: Conformal Isotonic Distributional Regression
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: c(person(given = "Sam", family = "Allen", role = c("aut", "cre"),
-                    email = "sam.allen@stat.math.ethz.ch",
+                    email = "sam.allen@kit.edu",
                     comment = c(ORCID = "0000-0003-1971-8277")),
              person(given = "Henzi", family = "Alexander", role = "ctb"))
-Description: Functions to implement conformal isotonic distributional regression
-    and the least squares prediction machine when issuing probabilistic forecasts
+Description: Functions to implement conformal isotonic distributional regression,
+    conformal binning, and the least squares prediction machine when 
+    issuing probabilistic forecasts.
     for real-valued outcomes.
 URL: https://github.com/sallen12/ConformalIDR
 License: GPL (>= 2)
@@ -15,8 +16,10 @@ Imports:
     Rcpp (>= 0.12.0),
     scoringRules,
     clue
+Suggests:
+  rpart
 Depends:
-    R (>= 3.00)
+    R (>= 3.5.0)
 LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 RoxygenNote: 7.3.2

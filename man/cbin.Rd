@@ -82,8 +82,8 @@ The complexity parameter specifies the minimum improvement in fit required for a
 regression tree to be performed; a smaller complexity parameter therefore results in a more complex
 tree with more bins.
 
-The k-means algorithm is implemented using \code{\link{stats::kmeans}} and \code{\link{clue::cl_predict()}},
-while the regression tree leverages \code{\link{rpart::rpart}}.
+The k-means algorithm is implemented using \code{\link[stats]{kmeans}} and \code{\link[clue]{cl_predict}},
+while the regression tree leverages \code{\link[rpart]{rpart}}.
 Further details can be found in the respective help pages.
 }
 \examples{
