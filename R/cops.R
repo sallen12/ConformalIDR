@@ -339,6 +339,10 @@ check_cops_args <- function(x, y, x_out, y_out, x_est, y_est, method, online, we
     k <- list(...)$k
     if (!is.vector(k) || !is.numeric(k) || length(k) > 1)
       stop("'k' argument to 'conformal_bin' must be a single numerical value")
+    binning <- list(...)$binning
+    if (binning == "tree" && is.null(x_est))
+      stop("'conformal_bin' only supports decision tree in the split conformal setting,
+           but no estimation data is provided (x_est = NULL)")
   }
 }
 

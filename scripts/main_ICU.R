@@ -26,7 +26,7 @@ verif_lists(N_ts, n_t, t_vec)
 ## prediction
 
 ## optimal k for conformal binning
-k <- local_binning_cv()
+k <- conformal_binning_cv()
 
 ## fit models
 for (i in seq_along(icu_vec)) {

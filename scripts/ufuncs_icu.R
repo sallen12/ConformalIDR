@@ -89,7 +89,7 @@ verif_lists <- function(N_ts, n_t, t_vec) {
 }
 
 # perform cross validation to find the optimal number of bins at each station
-local_binning_cv <- function(k_vec = c(1, seq(10, 100, 10))) {
+conformal_binning_cv <- function(k_vec = c(1, seq(10, 100, 10))) {
 
   score_mat <- matrix(NA, nrow = n_icu, ncol = length(k_vec))
   for (j in seq_along(icu_vec)) {

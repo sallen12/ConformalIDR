@@ -40,7 +40,7 @@ verif_lists(ts_obs, t_vec)
 if (seasonal) {
 
   ## optimal number of bins for local binning
-  k <- local_binning_cv()
+  k <- conformal_binning_cv()
 
   ## fit models
   for (j in seq_along(stat_ids)) {

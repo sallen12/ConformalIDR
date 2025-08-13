@@ -47,7 +47,7 @@ get_results <- function(N_tr = 500, x_ts, y_ts, type = c("iso", "anti", "less"),
   thick[['cidr']] <- cidr_preds$thick
   F_t[['cidr']] <- threshcal(cidr_preds, t_vec)
 
-  ### LB
+  ### CB
   locb_preds <- conformal_bin(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts, k = k)
   pcal[['locb']] <- sapply(locb_preds, function(x) x$pit)
   score[['locb']] <- sapply(locb_preds, function(x) x$crps)
@@ -71,23 +71,22 @@ plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", vert =
                           title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
     locb_plot <- pit_hist(pcal[['locb']], ranks = F, ymax = 0.4, xlab = NULL, xticks = F,
                           title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = ncol)
   } else if (type == "pitpp") {
     ## PIT pp-plots
     lspm_plot <- pit_reldiag(pcal[['lspm']], title = paste("LSPM: CRPS =", round(mean(score[['lspm']], na.rm = T), 3)))
     cidr_plot <- pit_reldiag(pcal[['cidr']], title = paste("CIDR: CRPS =", round(mean(score[['cidr']], na.rm = T), 3)))
     locb_plot <- pit_reldiag(pcal[['locb']], title = paste("CB: CRPS =", round(mean(score[['locb']], na.rm = T), 3)))
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = ncol)
   } else if (type == "threshcal") {
     ## threshold calibration
     t_vec <- quantile(obs, c(0.1, 0.25, 0.5, 0.75, 0.9))
     lspm_plot <- tc_reldiag(F_t[['lspm']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "LSPM")
     cidr_plot <- tc_reldiag(F_t[['cidr']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CIDR")
     locb_plot <- tc_reldiag(F_t[['locb']], obs, t_vec, xlab = "F(x)", ylab = "P(Y \u2264 x | F(x))", title = "CB")
-    cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = ncol)
   } else {
     stop("argument 'type' must be one of 'pithist', 'pitpp', and 'threshcal'")
   }
+
+  cal_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, ncol = ncol)
 
   if (!is.null(filename)) {
     if (type == "threshcal" || vert == F) {
