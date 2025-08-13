@@ -9,6 +9,7 @@
 
 plots/
 *plots.R
+scripts/results/
 
 *_pr.R
 *_ws.R
