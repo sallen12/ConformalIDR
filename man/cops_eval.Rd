@@ -6,6 +6,10 @@
 \alias{crps}
 \alias{threshcal}
 \alias{thickness}
+\alias{get_pint}
+\alias{coverage}
+\alias{int_score}
+\alias{width}
 \title{Evaluation of Conformal Predictive Systems}
 \usage{
 pit(fit, y)
@@ -15,6 +19,14 @@ crps(fit, y)
 threshcal(fit, thresholds, y)
 
 thickness(fit)
+
+get_pint(fit, alpha, crisp)
+
+coverage(fit, y, alpha, average, crisp)
+
+int_score(fit, y, alpha, crisp)
+
+width(fit, alpha, crisp)
 }
 \arguments{
 \item{fit}{object of class \code{"cops"} to be evaluated}
@@ -22,14 +34,32 @@ thickness(fit)
 \item{y}{labels that are predicted by \code{fit}. Default is to use \code{fit$y_out}, if available}
 
 \item{thresholds}{thresholds at which to evaluate threshold calibration}
+
+\item{alpha}{level of prediction intervals to be evaluated}
+
+\item{crisp}{logical specifying whether prediction intervals are to be obtained from
+the crips CDF (\code{crisp = TRUE}) or from the bounds of the predictive system (\code{crisp = FALSE});
+default is \code{crisp = FALSE}.}
 }
 \value{
 \code{pit()} returns a vector of PIT values
+
 \code{crps()} returns a vector of CRPS values
+
 \code{thickness()} returns a vector of thickness values
+
 \code{threshcal()} returns a matrix of forecast exceedance probabilities at the
  thresholds in \code{thresholds}
+
 \code{plot()} returns a base plot object
+
+\code{get_pint()} returns a matrix containing lower and upper bounds of prediction intervals
+
+\code{cov()} returns a vector of coverage indicators
+
+\code{is()} returns a vector of Interval Score values
+
+\code{width()} returns a vector of prediction interval widths
 }
 \description{
 Generic functions for evaluating conformal predictive systems. This includes functions

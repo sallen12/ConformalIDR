@@ -10,16 +10,32 @@
 #' @param fit object of class \code{"cops"} to be evaluated
 #' @param y labels that are predicted by \code{fit}. Default is to use \code{fit$y_out}, if available
 #' @param thresholds thresholds at which to evaluate threshold calibration
+#' @param alpha level of prediction intervals to be evaluated
+#' @param crisp logical specifying whether prediction intervals are to be obtained from
+#' the crips CDF (\code{crisp = TRUE}) or from the bounds of the predictive system (\code{crisp = FALSE});
+#' default is \code{crisp = FALSE}.
 #'
 #'
 #' @returns
 #'
 #' \code{pit()} returns a vector of PIT values
+#'
 #' \code{crps()} returns a vector of CRPS values
+#'
 #' \code{thickness()} returns a vector of thickness values
+#'
 #' \code{threshcal()} returns a matrix of forecast exceedance probabilities at the
 #'  thresholds in \code{thresholds}
+#'
 #' \code{plot()} returns a base plot object
+#'
+#' \code{get_pint()} returns a matrix containing lower and upper bounds of prediction intervals
+#'
+#' \code{cov()} returns a vector of coverage indicators
+#'
+#' \code{is()} returns a vector of Interval Score values
+#'
+#' \code{width()} returns a vector of prediction interval widths
 #'
 #'
 #' @details
@@ -114,6 +130,34 @@ thickness <- function(fit) {
 }
 
 
+#' @rdname cops_eval
+#' @export
+get_pint <- function(fit, alpha, crisp) {
+  UseMethod("get_pint")
+}
+
+
+#' @rdname cops_eval
+#' @export
+coverage <- function(fit, y, alpha, average, crisp) {
+  UseMethod("coverage")
+}
+
+
+#' @rdname cops_eval
+#' @export
+int_score <- function(fit, y, alpha, crisp) {
+  UseMethod("int_score")
+}
+
+
+#' @rdname cops_eval
+#' @export
+width <- function(fit, alpha, crisp) {
+  UseMethod("width")
+}
+
+
 #' @exportS3Method pit cops
 plot.cops <- function(fit, index = 1, ...) {
   points <- fit$points
@@ -203,3 +247,71 @@ thickness.cops <- function(fit) {
   return(out)
 }
 
+
+#' @exportS3Method get_pint cops
+get_pint.cops <- function(fit, alpha, crisp = FALSE){
+
+  x <- fit$points
+  if (crisp) {
+    F_l <- F_u <- fit$cdf_crisp
+  } else {
+    F_l <- fit$cdf_upper
+    F_u <- fit$cdf_lower
+  }
+
+  cops_pint_i <- function(x_i, F_l_i, F_u_i, a){
+    if (any(diff(x_i) < 0)){
+      ord <- order(x_i)
+      x_i <- x_i[ord]
+      F_l_i <- F_l_i[ord]
+      F_u_i <- F_u_i[ord]
+    }
+
+    ind_low <- which(F_u_i >= a/2)[1]
+    lower <- if (!is.na(ind_low)) x_i[ind_low] else NA
+    if (is.infinite(lower)) lower <- x_i[ind_low + 1]
+
+    ind_upp  <- tail(which(F_l_i <= (1 - a/2)), 1)
+    upper <- if (!is.na(ind_upp)) x_i[ind_upp] else NA
+    if (is.infinite(upper)) upper <- x_i[ind_upp - 1]
+
+    c(Lower = lower, Upper = upper)
+  }
+
+  if (is.matrix(x)) {
+    pints <- sapply(1:ncol(x), function(i) cops_pint_i(x[, i], F_l[, i], F_u[, i], alpha))
+  } else {
+    pints <- cops_pint_i(x, F_l, F_u, alpha)
+  }
+  pints <- t(pints)
+  colnames(pints) <- c("Lower", "Upper")
+  return(pints)
+}
+
+
+#' @exportS3Method coverage cops
+coverage.cops <- function(fit, y = fit$y_out, alpha, average = TRUE, crisp = FALSE){
+  pints <- get_pint(fit, alpha, crisp)
+  cov <- as.numeric(y >= pints[, 1] & y <= pints[, 2])
+  if (average) {
+    return(mean(cov, na.rm = TRUE))
+  } else {
+    return(cov)
+  }
+}
+
+
+#' @exportS3Method int_score cops
+int_score.cops <- function(fit, y = fit$y_out, alpha, crisp = FALSE){
+  pints <- get_pint(fit, alpha, crisp)
+  is <- (pints[, 2] - pints[, 1]) + (2/alpha)*(y < pints[, 1])*(pints[, 1] - y) + (2/alpha)*(y > pints[, 2])*(y - pints[, 2])
+  return(is)
+}
+
+
+#' @exportS3Method width cops
+width.cops <- function(fit, alpha, crisp = FALSE){
+  pints <- get_pint(fit, alpha, crisp)
+  width <- pints[, 2] - pints[, 1]
+  return(width)
+}
