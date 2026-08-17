@@ -25,7 +25,7 @@ get_results <- function(N_tr = 500, x_ts, y_ts, type = c("iso", "anti", "less"),
   N_ts <- length(y_ts)
   pcal <- data.frame(replicate(3, numeric(N_ts)))
   colnames(pcal) <- c("lspm", "cidr", "locb")
-  thick <- score <- pcal
+  thick <- crps <- pcal
 
   t_vec <- unname(quantile(y_ts, c(0.1, 0.25, 0.5, 0.75, 0.9)))
   n_t <- length(t_vec)
@@ -33,31 +33,46 @@ get_results <- function(N_tr = 500, x_ts, y_ts, type = c("iso", "anti", "less"),
               cidr = matrix(NA, N_ts, n_t),
               locb = matrix(NA, N_ts, n_t))
 
+  a_vec <- seq(0.05, 0.95, 0.05)
+  n_a <- length(a_vec)
+  cov <- is <- width <- list(lspm = matrix(NA, N_ts, n_a),
+                        cidr = matrix(NA, N_ts, n_a),
+                        locb = matrix(NA, N_ts, n_a))
+
   ### LSPM
   lspm_preds <- conformal_lspm(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts)
   pcal[['lspm']] <- lspm_preds$pit
-  score[['lspm']] <- lspm_preds$crps
+  crps[['lspm']] <- lspm_preds$crps
   thick[['lspm']] <- lspm_preds$thick
   F_t[['lspm']] <- threshcal(lspm_preds, t_vec)
+  cov[['lspm']] <- sapply(a_vec, function(a) coverage(lspm_preds, alpha = a, average = F))
+  is[['lspm']] <- sapply(a_vec, function(a) int_score(lspm_preds, alpha = a))
+  width[['lspm']] <- sapply(a_vec, function(a) width(lspm_preds, alpha = a))
 
   ### CIDR
   cidr_preds <- conformal_idr(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts)
   pcal[['cidr']] <- cidr_preds$pit
-  score[['cidr']] <- cidr_preds$crps
+  crps[['cidr']] <- cidr_preds$crps
   thick[['cidr']] <- cidr_preds$thick
   F_t[['cidr']] <- threshcal(cidr_preds, t_vec)
+  cov[['cidr']] <- sapply(a_vec, function(a) coverage(cidr_preds, alpha = a, average = F))
+  is[['cidr']] <- sapply(a_vec, function(a) int_score(cidr_preds, alpha = a))
+  width[['cidr']] <- sapply(a_vec, function(a) width(cidr_preds, alpha = a))
 
   ### CB
   locb_preds <- conformal_bin(x = x_tr, y = y_tr, x_out = x_ts, y_out = y_ts, k = k)
   pcal[['locb']] <- sapply(locb_preds, function(x) x$pit)
-  score[['locb']] <- sapply(locb_preds, function(x) x$crps)
+  crps[['locb']] <- sapply(locb_preds, function(x) x$crps)
   thick[['locb']] <- sapply(locb_preds, function(x) x$thick)
   F_t[['locb']] <- sapply(locb_preds, function(x) threshcal(x, t_vec)) |> t()
+  cov[['locb']] <- sapply(locb_preds, function(x) sapply(a_vec, function(a) coverage(x, alpha = a, average = F))) |> t()
+  is[['locb']] <- sapply(locb_preds, function(x) sapply(a_vec, function(a) int_score(x, alpha = a))) |> t()
+  width[['locb']] <- sapply(locb_preds, function(x) sapply(a_vec, function(a) width(x, alpha = a))) |> t()
 
   end <- Sys.time()
   print(end - start)
 
-  return(list(pit = pcal, crps = score, F_t = F_t, thick = thick))
+  return(list(pit = pcal, crps = crps, F_t = F_t, thick = thick, cov = cov, is = is, width = width))
 }
 
 # wrapper to plot and save PIT histograms, pp-plots, and threshold calibration plots
@@ -94,8 +109,151 @@ plot_cal <- function(pcal, score, F_t = NULL, obs = NULL, type = "pitpp", vert =
     } else {
       ggsave(plot = cal_plot, filename, width = 2.5, height = 7.5, dpi = 300)
     }
-
   }
+}
+
+# wrapper to plot and save interval score plots
+plot_is <- function(is, alpha = NULL, filename = NULL) {
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+  scores <- sapply(is, colMeans)
+  df <- data.frame(s = as.vector(scores), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
+  is_plot <- ggplot(df) + geom_point(aes(x = a, y = s, col = mth), size = 2) +
+    geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+    scale_x_continuous(name = expression(1 - alpha), limits = c(0, 1)) +
+    scale_y_continuous(name = "Interval Score") +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.justification = c(0, 1),
+          legend.position = c(0.01, 0.99))
+  if (!is.null(filename)) {
+    ggsave(plot = is_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+}
+
+# wrapper to plot and save unconditional and conditional coverage plots
+plot_cov <- function(cov, alpha = NULL, x_ts = NULL, n_bins = 10, filename = NULL) {
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+  cov_mat <- sapply(cov, colMeans)
+
+  if (is.null(x_ts)) {
+    df <- data.frame(s = as.vector(cov_mat), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
+    cov_plot <- ggplot(df) +
+      geom_abline(aes(intercept = 0, slope = 1), lty = "dotted") +
+      geom_point(aes(x = a, y = s, col = mth), size = 2) +
+      geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+      scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
+      scale_y_continuous(name = "Empirical coverage", limits = c(0, 1)) +
+      theme_bw() +
+      theme(legend.title = element_blank(),
+            legend.justification = c(0, 1),
+            legend.position = c(0.01, 0.99))
+  } else {
+    breaks <- seq(0, 10, length.out = n_bins + 1)
+    cond_cal_05 <- sapply(1:n_bins, function(i) {
+      ind <- (x_ts >= breaks[i] & x_ts < breaks[i + 1])
+      sapply(cov, function(x) mean(x[ind, which(abs(alpha - 0.5) < 1e-10)]))
+    })
+    cond_cal_09 <- sapply(1:n_bins, function(i) {
+      ind <- (x_ts >= breaks[i] & x_ts < breaks[i + 1])
+      sapply(cov, function(x) mean(x[ind, which(abs(alpha - 0.1) < 1e-10)]))
+    })
+    df <- data.frame(x = breaks[1:n_bins] + diff(breaks)/2,
+                     c1 = as.vector(t(cond_cal_05)),
+                     c2 = as.vector(t(cond_cal_09)),
+                     mth = rep(c("LSPM", "CIDR", "CB"), each = n_bins))
+    cov_plot <- ggplot(df) +
+      geom_hline(aes(yintercept = 0.5), lty = "dotted") +
+      geom_hline(aes(yintercept = 0.9), lty = "dotted") +
+      geom_point(aes(x = x, y = c1, col = mth), size = 2) +
+      geom_line(aes(x = x, y = c1, col = mth), linewidth = 1, lty = "dashed") +
+      geom_point(aes(x = x, y = c2, col = mth), size = 2) +
+      geom_line(aes(x = x, y = c2, col = mth), linewidth = 1) +
+      scale_x_continuous(name = "X", breaks = breaks, limits = c(0, 10)) +
+      scale_y_continuous(name = "Empirical coverage", limits = c(0, 1)) +
+      theme_bw() +
+      theme(panel.grid.minor = element_blank(),
+            legend.title = element_blank(),
+            legend.justification = c(0, 0),
+            legend.position = c(0.01, 0.01)) +
+      guides(colour = guide_legend(nrow = 1))
+  }
+
+  if (!is.null(filename)) {
+    ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+
+}
+
+# wrapper to plot unconditional and conditional interval width plots
+plot_width <- function(width, alpha = NULL, x_ts = NULL, n_bins = 10, type = c("ave", "cond", "samp"), filename = NULL) {
+  type <- match.arg(type)
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+
+  if (type == "ave") {
+    av_width <- sapply(width, colMeans)
+    df <- data.frame(s = as.vector(av_width), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
+    wid_plot <- ggplot(df) +
+      geom_point(aes(x = a, y = s, col = mth), size = 2) +
+      geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+      scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
+      scale_y_continuous(name = "Average width") +
+      theme_bw() +
+      theme(legend.title = element_blank(),
+            legend.justification = c(0, 1),
+            legend.position = c(0.01, 0.99))
+  } else if (type == "cond") {
+    breaks <- seq(0, 10, length.out = n_bins + 1)
+    cond_wid_05 <- sapply(1:n_bins, function(i) {
+      ind <- (x_ts >= breaks[i] & x_ts < breaks[i + 1])
+      sapply(width, function(x) mean(x[ind, which(abs(alpha - 0.5) < 1e-10)]))
+    })
+    cond_wid_09 <- sapply(1:n_bins, function(i) {
+      ind <- (x_ts >= breaks[i] & x_ts < breaks[i + 1])
+      sapply(width, function(x) mean(x[ind, which(abs(alpha - 0.1) < 1e-10)]))
+    })
+    df <- data.frame(x = breaks[1:n_bins] + diff(breaks)/2,
+                     w1 = as.vector(t(cond_wid_05)),
+                     w2 = as.vector(t(cond_wid_09)),
+                     mth = rep(c("LSPM", "CIDR", "CB"), each = n_bins))
+    wid_plot <- ggplot(df) +
+      geom_point(aes(x = x, y = w1, col = mth), size = 2) +
+      geom_line(aes(x = x, y = w1, col = mth), linewidth = 1, lty = "dashed") +
+      geom_point(aes(x = x, y = w2, col = mth), size = 2) +
+      geom_line(aes(x = x, y = w2, col = mth), linewidth = 1) +
+      scale_x_continuous(name = "X", breaks = breaks, limits = c(0, 10)) +
+      scale_y_continuous(name = "Average width") +
+      theme_bw() +
+      theme(panel.grid.minor = element_blank(),
+            legend.title = element_blank(),
+            legend.justification = c(0, 1),
+            legend.position = c(0.01, 0.99))
+  } else {
+    a_ind <- which(abs(alpha - 0.1) < 1e-10)
+    df <- lapply(seq_along(width), function(i) {
+            id <- c(" 100", " 500", "1000", "2000")[i]
+            mat_list <- width[[i]]
+            inner_df <- lapply(seq_along(mat_list), function(j) {
+              data.frame(value = mat_list[[j]][, a_ind],
+                         id = id,
+                         mth = c("LSPM", "CIDR", "CB")[j])
+            })
+            do.call(rbind, inner_df)
+          }) |> do.call(what = rbind)
+
+    wid_plot <- ggplot(df, aes(x = id, y = value, fill = mth)) +
+      geom_boxplot(width = 0.7) +
+      scale_x_discrete(name = "Sample size") +
+      scale_y_continuous(name = "Width") +
+      theme_bw() +
+      theme(legend.position = "bottom",
+            legend.title = element_blank(),
+            panel.grid.minor = element_blank())
+  }
+
+  if (!is.null(filename)) {
+    ggsave(plot = wid_plot, filename, width = 5, height = 3.3, dpi = 300)
+  }
+
 }
 
 # function to plot example data
@@ -155,9 +313,27 @@ plot_cal(res_2000$pit, res_2000$crps, filename = "plots/simstudy_2000.png")
 
 plot_cal(res_2000$pit, res_2000$crps, vert = F, filename = "plots/simstudy_2000_ho.png")
 
-
 ## threshold calibration
 plot_cal(F_t = res_2000$F_t, obs = y_ts, type = "threshcal", filename = "plots/simstudy_2000_tc.png")
+
+## unconditional coverage of prediction intervals
+plot_cov(res_2000$cov, filename = "plots/simstudy_2000_cov.png")
+
+## conditional coverage of prediction intervals
+plot_cov(res_2000$cov, x_ts = x_ts, filename = "plots/simstudy_2000_ccov.png")
+
+## interval score of prediction intervals
+plot_is(res_2000$is, filename = "plots/simstudy_2000_is.png")
+
+## unconditional average width of prediction intervals
+plot_width(res_2000$width, filename = "plots/simstudy_2000_wid.png")
+
+## conditional average width of prediction intervals
+plot_width(res_2000$width, x_ts = x_ts, filename = "plots/simstudy_2000_cwid.png", type = "cond")
+
+## average width of prediction intervals
+plot_width(lapply(list(res_100, res_500, res_1000, res_2000), function(x) x$width),
+           filename = "plots/simstudy_2000_wid_samp.png", type = "samp")
 
 
 ################################################################################
@@ -182,6 +358,24 @@ plot_cal(res_2000_at$pit, res_2000_at$crps, filename = "plots/simstudy_2000_at.p
 ## threshold calibration
 plot_cal(F_t = res_1000_at$F_t, obs = y_ts_at, type = "threshcal", filename = "plots/simstudy_1000_tc_at.png")
 
+## unconditional coverage of prediction intervals
+plot_cov(res_2000_at$cov, filename = "plots/simstudy_2000_cov_at.png")
+
+## conditional coverage of prediction intervals
+plot_cov(res_2000_at$cov, x_ts = x_ts, filename = "plots/simstudy_2000_ccov_at.png")
+
+## interval score of prediction intervals
+plot_is(res_2000_at$is, filename = "plots/simstudy_2000_is_at.png")
+
+## unconditional average width of prediction intervals
+plot_width(res_2000_at$width, filename = "plots/simstudy_2000_wid_at.png")
+
+## conditional average width of prediction intervals
+plot_width(res_2000_at$width, x_ts = x_ts, filename = "plots/simstudy_2000_cwid_at.png", type = "cond")
+
+## average width of prediction intervals
+plot_width(lapply(list(res_100_at, res_500_at, res_1000_at, res_2000_at), function(x) x$width),
+           filename = "plots/simstudy_2000_wid_samp_at.png", type = "samp")
 
 
 ################################################################################
@@ -209,6 +403,26 @@ plot_cal(res_2000_le$pit, res_2000_le$crps, vert = F, filename = "plots/simstudy
 plot_cal(F_t = res_2000_le$F_t, obs = y_ts_le, type = "threshcal", filename = "plots/simstudy_2000_tc_le.png")
 
 
+## unconditional coverage of prediction intervals
+plot_cov(res_2000_le$cov, filename = "plots/simstudy_2000_cov_le.png")
+
+## conditional coverage of prediction intervals
+plot_cov(res_2000_le$cov, x_ts = x_ts, filename = "plots/simstudy_2000_ccov_le.png")
+
+## interval score of prediction intervals
+plot_is(res_2000_le$is, filename = "plots/simstudy_2000_is_le.png")
+
+## unconditional average width of prediction intervals
+plot_width(res_2000_le$width, filename = "plots/simstudy_2000_wid_le.png")
+
+## conditional average width of prediction intervals
+plot_width(res_2000_le$width, x_ts = x_ts, filename = "plots/simstudy_2000_cwid_le.png", type = "cond")
+
+## average width of prediction intervals
+plot_width(lapply(list(res_100_le, res_500_le, res_1000_le, res_2000_le), function(x) x$width),
+           filename = "plots/simstudy_2000_wid_samp_le.png", type = "samp")
+
+
 ################################################################################
 ## compare thicknesses
 
@@ -220,4 +434,5 @@ ggplot(df) + geom_boxplot(aes(x = mode, y = thicc)) +
   theme_bw() +
   theme(panel.grid = element_blank())
 ggsave("plots/simstudy_thick.png", width = 5, height = 3)
+
 
