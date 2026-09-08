@@ -241,18 +241,25 @@ plot_map <- function(lons, lats, z, filename = NULL){
 }
 
 # initialise lists to store verification data
-verif_lists <- function(ts_obs, t_vec) {
+verif_lists <- function(ts_obs, t_vec, a_vec) {
 
   pcal <<- list(lspm = array(NA, dim(ts_obs)),
                 cidr = array(NA, dim(ts_obs)),
                 locb = array(NA, dim(ts_obs)))
-  score <<- pcal
+  crpsc <<- pcal
   thick <<- pcal
 
   n_t <<- length(t_vec)
   F_t <<- list(lspm = array(NA, c(dim(ts_obs), n_t)),
                cidr = array(NA, c(dim(ts_obs), n_t)),
                locb = array(NA, c(dim(ts_obs), n_t)))
+
+  n_a <<- length(a_vec)
+  cover <<- list(lspm = array(NA, c(dim(ts_obs), n_a)),
+                 cidr = array(NA, c(dim(ts_obs), n_a)),
+                 locb = array(NA, c(dim(ts_obs), n_a)))
+  intsc <<- cover
+  widt <<- cover
 }
 
 # perform cross validation to find the optimal number of bins at each station
@@ -392,3 +399,121 @@ plot_thick <- function(thick, type = "traffic", obs = NULL, times = NULL, x = NU
 
 }
 
+# wrapper to plot average interval score
+plot_is <- function(is, alpha = NULL, filename = NULL) {
+  av_score <- sapply(intsc, apply, 3, mean)
+  df <- data.frame(s = as.vector(av_score), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB", "CQR"), each = length(alpha)))
+  is_plot <- ggplot(df) + geom_point(aes(x = a, y = s, col = mth), size = 2) +
+    geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+    scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
+    scale_y_continuous(name = "Interval Score") +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.justification = c(0, 1),
+          legend.position = c(0.01, 0.99))
+  if (!is.null(filename)) {
+    ggsave(plot = is_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+}
+
+# wrapper to plot unconditional coverage
+plot_cov_unc <- function(cov, alpha = NULL, filename = NULL) {
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+  cov_mat <- sapply(cover, apply, 3, mean)
+  df <- data.frame(s = as.vector(cov_mat),
+                   a = 1 - alpha,
+                   mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
+  cov_plot <- ggplot(df) +
+    geom_abline(aes(intercept = 0, slope = 1), lty = "dotted") +
+    geom_point(aes(x = a, y = s, col = mth), size = 2) +
+    geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+    scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
+    scale_y_continuous(name = "Empirical coverage", limits = c(0, 1)) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.justification = c(0, 1),
+          legend.position = c(0.01, 0.99))
+
+  if (!is.null(filename)) {
+    ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+
+}
+
+# wrapper to plot conditional coverage
+plot_cov_con <- function(cov, alpha = NULL, x_ts = NULL, n_bins = 10, filename = NULL) {
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+
+  breaks <- seq(0, 1, length.out = n_bins + 1)
+  cond_cal_05 <- sapply(1:n_bins, function(i) {
+    cov_mat <- sapply(1:n_loc, function(j) {
+      q <- quantile(tr_obs[j, ], c(breaks[i], breaks[i + 1])) |> unname()
+      if (i == n_bins) {
+        ind <- (x_ts[j, ] >= q[1] & x_ts[j, ] <= q[2])
+      } else {
+        ind <- (x_ts[j, ] >= q[1] & x_ts[j, ] < q[2])
+      }
+      sapply(cov, function(x) mean(x[j, ind, which(abs(alpha - 0.5) < 1e-10)]))
+    })
+    rowMeans(cov_mat)
+  })
+  cond_cal_09 <- sapply(1:n_bins, function(i) {
+    cov_mat <- sapply(1:n_loc, function(j) {
+      q <- quantile(tr_obs[j, ], c(breaks[i], breaks[i + 1])) |> unname()
+      if (i == n_bins) {
+        ind <- (x_ts[j, ] >= q[1] & x_ts[j, ] <= q[2])
+      } else {
+        ind <- (x_ts[j, ] >= q[1] & x_ts[j, ] < q[2])
+      }
+      sapply(cov, function(x) mean(x[j, ind, which(abs(alpha - 0.1) < 1e-10)]))
+    })
+    rowMeans(cov_mat)
+  })
+  df <- data.frame(x = breaks[1:n_bins] + diff(breaks)/2,
+                   c1 = as.vector(t(cond_cal_05)),
+                   c2 = as.vector(t(cond_cal_09)),
+                   mth = rep(c("LSPM", "CIDR", "CB"), each = n_bins))
+  cov_plot <- ggplot(df) +
+    geom_hline(aes(yintercept = 0.5), lty = "dotted") +
+    geom_hline(aes(yintercept = 0.9), lty = "dotted") +
+    geom_point(aes(x = x, y = c1, col = mth), size = 2) +
+    geom_line(aes(x = x, y = c1, col = mth), linewidth = 1, lty = "dashed") +
+    geom_point(aes(x = x, y = c2, col = mth), size = 2) +
+    geom_line(aes(x = x, y = c2, col = mth), linewidth = 1) +
+    scale_x_continuous(name = "Ensemble mean (as quantile)", breaks = breaks, limits = c(0, 1)) +
+    scale_y_continuous(name = "Empirical coverage", limits = c(0, 1)) +
+    theme_bw() +
+    theme(panel.grid.minor = element_blank(),
+          legend.title = element_blank(),
+          legend.justification = c(0, 0),
+          legend.position = c(0.01, 0.01)) +
+    guides(colour = guide_legend(nrow = 1))
+
+  if (!is.null(filename)) {
+    ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+
+}
+
+# wrapper to plot average prediction interval length
+plot_width <- function(width, alpha = NULL, filename = NULL) {
+  if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
+
+  av_width <- sapply(width, apply, 3, mean)
+  df <- data.frame(s = as.vector(av_width), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
+  wid_plot <- ggplot(df) +
+    geom_point(aes(x = a, y = s, col = mth), size = 2) +
+    geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
+    scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
+    scale_y_continuous(name = "Average width") +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.justification = c(0, 1),
+          legend.position = c(0.01, 0.99))
+
+
+  if (!is.null(filename)) {
+    ggsave(plot = wid_plot, filename, width = 5, height = 3, dpi = 300)
+  }
+
+}
