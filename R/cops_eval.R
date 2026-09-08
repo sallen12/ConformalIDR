@@ -268,12 +268,12 @@ get_pint.cops <- function(fit, alpha, crisp = FALSE){
     }
 
     ind_low <- which(F_u_i >= a/2)[1]
+    ind_low <- pmax(2, ind_low)
     lower <- if (!is.na(ind_low)) x_i[ind_low] else NA
-    if (is.infinite(lower)) lower <- x_i[ind_low + 1]
 
-    ind_upp  <- tail(which(F_l_i <= (1 - a/2)), 1)
+    ind_upp  <- which(F_l_i >= 1 - a/2)[1]
+    ind_upp <- pmin(length(x_i) - 1, ind_upp)
     upper <- if (!is.na(ind_upp)) x_i[ind_upp] else NA
-    if (is.infinite(upper)) upper <- x_i[ind_upp - 1]
 
     c(Lower = lower, Upper = upper)
   }
