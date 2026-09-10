@@ -1,58 +1,6 @@
 ################################################################################
 ##### utility functions for ICU length of stay case study
 
-# load data
-load_data <- function() {
-  load("C:/Users/sa20i493/Documents/Data/icu_data/mdsi.rda")
-
-  icu_vec <<- data$icuCode %>% unique()
-  n_icu <<- icu_vec %>% length()
-
-  ## split into estimation (val), calibration (tr), and test (ts) data
-  data <- data %>% arrange(outDate)
-  data_tr <- data %>% slice_head(n = round(nrow(data)*0.75))
-  data_ts <- data %>% anti_join(data_tr, by = "id")
-  data_val <- data_tr %>% sample_frac(size = 2/3)
-  data_tr <- data_tr %>% anti_join(data_val, by = "id")
-
-  a_vec <<- seq(0.05, 0.95, 0.05)
-  t_vec <<- data_ts$los %>% quantile(c(0.1, 0.25, 0.5, 0.75, 0.9)) %>% unname()
-  n_t <<- t_vec %>% length()
-  N_ts <<- data_ts %>% nrow()
-
-  time_meth <<- matrix(NA, nrow = n_icu, ncol = 3)
-  colnames(time_meth) <<- c("lspm", "cidr", "mond")
-
-  ## add index
-  data_val$index <- NA
-  data_tr$index <- NA
-  data_ts$index <- NA
-  for (icu in icu_vec) {
-    print(icu)
-
-    ### Get train data
-    train <- subset(data_tr, icuCode == icu)
-    val <- subset(data_val, icuCode == icu)
-    test <- subset(data_ts, icuCode == icu)
-
-    ### Get index
-    out <- get_index(val, train, test)
-
-    icu_ind <- data_val$icuCode == icu
-    data_val[icu_ind, ] <- out$val
-
-    icu_ind <- data_tr$icuCode == icu
-    data_tr[icu_ind, ] <- out$train
-
-    icu_ind <- data_ts$icuCode == icu
-    data_ts[icu_ind, ] <- out$test
-  }
-
-  data_val <<- data_val
-  data_tr <<- data_tr
-  data_ts <<- data_ts
-}
-
 # function to get the index from the covariates
 get_index <- function(val, train, test) {
   out <- tryCatch({
@@ -272,6 +220,8 @@ plot_is <- function(is, alpha = NULL, filename = NULL) {
           legend.position = c(0.01, 0.99))
   if (!is.null(filename)) {
     ggsave(plot = is_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(is_plot)
   }
 }
 
@@ -295,6 +245,8 @@ plot_cov_unc <- function(cov, alpha = NULL, filename = NULL) {
 
   if (!is.null(filename)) {
     ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(cov_plot)
   }
 
 }
@@ -353,6 +305,8 @@ plot_cov_con <- function(cov, x_ts, icu, alpha = NULL, n_bins = 10, filename = N
 
   if (!is.null(filename)) {
     ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(cov_plot)
   }
 
 }
@@ -376,6 +330,8 @@ plot_width <- function(width, alpha = NULL, filename = NULL) {
 
   if (!is.null(filename)) {
     ggsave(plot = wid_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(wid_plot)
   }
 
 }

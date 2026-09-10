@@ -1,183 +1,5 @@
 ################################################################################
-##### EUPPBench temperature case study
-
-# load data
-load_data <- function(na_prop = 10) {
-
-  path <- "C:/Users/sa20i493/Documents/Data/EUMetNet/t2m_station_"
-
-  ### train data
-
-  ## fcst
-  fcst_file <- nc_open(paste0(path, "refo_fc.ncdf4"))
-  train_stid_fc <- ncvar_get(fcst_file, varid = "station_id")
-  train_lon_fc <- ncvar_get(fcst_file, varid = "station_longitude")
-  train_lat_fc <- ncvar_get(fcst_file, varid = "station_latitude")
-  train_year_fc <- ncvar_get(fcst_file, varid = "year")
-  train_time_fc <- as.POSIXct(ncvar_get(fcst_file, varid = "time")*(24*60*60), origin = '2017-01-02')
-  train_lt_fc <- ncvar_get(fcst_file, varid = "step")
-  train_ens_fc <- ncvar_get(fcst_file, varid = "number")
-  tr_fc <<- ncvar_get(fcst_file, "t2m")
-  tr_fc <<- tr_fc - 273 # convert to celcius
-  tr_fc <<- aperm(tr_fc, c(5, 1, 2, 4, 3))
-  nc_close(fcst_file)
-
-  ## obs
-  obs_file <- nc_open(paste0(path, "refo_obs.ncdf4"))
-  train_stid_obs <- ncvar_get(obs_file, varid = "station_id")
-  train_year_obs <- ncvar_get(obs_file, varid = "year")
-  train_time_obs <- as.POSIXct(ncvar_get(obs_file, varid = "time")*(24*60*60), origin = '2017-01-02')
-  train_lt_obs <- ncvar_get(obs_file, varid = "step")
-  tr_obs <<- ncvar_get(obs_file, "t2m")
-  tr_obs <<- tr_obs - 273 # convert to celcius
-  nc_close(obs_file)
-
-
-  ### test data
-
-  ## fcst
-  fcst_file <- nc_open(paste0(path, "1718_fc.ncdf4"))
-  test_stid_fc <- ncvar_get(fcst_file, varid = "station_id")
-  test_lon_fc <- ncvar_get(fcst_file, varid = "station_longitude")
-  test_lat_fc <- ncvar_get(fcst_file, varid = "station_latitude")
-  test_time_fc <- as.POSIXct(ncvar_get(fcst_file, varid = "time"), origin = '1970-01-01')
-  test_lt_fc <- ncvar_get(fcst_file, varid = "step")
-  test_ens_fc <- ncvar_get(fcst_file, varid = "number")
-  ts_fc <<- ncvar_get(fcst_file, "t2m")
-  ts_fc <<- ts_fc - 273 # convert to celcius
-  ts_fc <<- aperm(ts_fc, c(4, 1, 2, 3))
-  nc_close(fcst_file)
-
-  ## obs
-  obs_file <- nc_open(paste0(path, "1718_obs.ncdf4"))
-  test_stid_obs <- ncvar_get(obs_file, varid = "station_id")
-  test_time_obs <- as.POSIXct(ncvar_get(obs_file, varid = "time"), origin = '1970-01-01')
-  test_lt_obs <- ncvar_get(obs_file, varid = "step")
-  ts_obs <<- ncvar_get(obs_file, "t2m")
-  ts_obs <<- ts_obs - 273 # convert to celcius
-  nc_close(obs_file)
-
-
-  ### checks
-  if (identical(test_lt_fc, test_lt_obs) &
-      identical(train_lt_fc, train_lt_obs) &
-      identical(test_lt_fc, train_lt_fc)) {
-    lead_times <<- test_lt_obs
-  } else {
-    stop("Lead times in forecast and observation data do not match")
-  }
-  if (identical(test_stid_fc, test_stid_obs) &
-      identical(train_stid_fc, train_stid_obs) &
-      identical(test_stid_fc, train_stid_obs)) {
-    stat_ids <<- test_stid_obs
-  } else {
-    stop("Station IDs in forecast and observation data do not match")
-  }
-  if (identical(test_lon_fc, train_lon_fc)) {
-    lons <<- test_lon_fc
-  } else {
-    stop("Station longitudes in train and test data do not match")
-  }
-  if (identical(test_lat_fc, train_lat_fc)) {
-    lats <<- test_lat_fc
-  } else {
-    stop("Station latitudes in train and test data do not match")
-  }
-  if (identical(test_time_fc, test_time_obs)) {
-    ts_times <<- test_time_obs
-  } else {
-    stop("Forecast reference times in forecast and observation test data do not match")
-  }
-  if (identical(train_time_fc, train_time_obs)) {
-    tr_times <<- train_time_obs
-  } else {
-    stop("Forecast reference times in forecast and observation training data do not match")
-  }
-  if (identical(train_year_fc, train_year_obs)) {
-    tr_years <<- train_year_obs
-  } else {
-    stop("Years in forecast and observation training data do not match")
-  }
-  n_ens <<- length(test_ens_fc)
-  tr_n_ens <<- length(train_ens_fc)
-
-  ### remove stations with missing data
-  i <- 1
-  while (i <= length(stat_ids)) {
-    id <- stat_ids[i]
-    train_na <- sapply(1:length(lead_times), function(lt) mean(is.na(tr_obs[i, lt, , ])))
-    test_na <- sapply(1:length(lead_times), function(lt) mean(is.na(ts_obs[i, lt, ])))
-    if (any(100*test_na > na_prop) | any(100*train_na > na_prop)) {
-      ts_obs <<- ts_obs[-i, , ]
-      ts_fc <<- ts_fc[-i, , , ]
-      tr_obs <<- tr_obs[-i, , , ]
-      tr_fc <<- tr_fc[-i, , , , ]
-      stat_ids <<- stat_ids[-i]
-      lons <<- lons[-i]
-      lats <<- lats[-i]
-      print(paste("Station", id, "has been removed due to a high proportion of missing values"))
-    } else {
-      i <- i + 1
-    }
-  }
-  n_loc <<- length(lats)
-
-  ## plot example forecast trajectory
-  plot_obj <- plot_example()
-
-
-  ## restrict attention to 24h forecasts
-  lead_time <- 24
-  ts_fc <<- ts_fc[, which(lead_times == lead_time), , ]
-  ts_obs <<- ts_obs[, which(lead_times == lead_time), ]
-  tr_fc <<- tr_fc[, which(lead_times == lead_time), , , ]
-  tr_fc <<- array(tr_fc, c(n_loc, length(tr_years)*length(tr_times), tr_n_ens))
-  tr_obs <<- tr_obs[, which(lead_times == lead_time), , ]
-  tr_obs <<- array(tr_obs, c(n_loc, length(tr_years)*length(tr_times)))
-
-
-  ## get ensemble mean forecast
-  ts_fc_mn <<- apply(ts_fc, c(1, 2), mean)
-  tr_fc_mn <<- apply(tr_fc, c(1, 2), mean)
-
-
-  ## get month and season data
-  tr_month <<- lubridate::month(tr_times)
-  ts_month <<- lubridate::month(ts_times)
-
-  tr_seas <<- tr_month
-  tr_seas[tr_month %in% c(12, 1, 2)] <<- "Wi"
-  tr_seas[tr_month %in% c(3, 4, 5)] <<- "Sp"
-  tr_seas[tr_month %in% c(6, 7, 8)] <<- "Su"
-  tr_seas[tr_month %in% c(9, 10, 11)] <<- "Au"
-
-  ts_seas <<- ts_month
-  ts_seas[ts_month %in% c(12, 1, 2)] <<- "Wi"
-  ts_seas[ts_month %in% c(3, 4, 5)] <<- "Sp"
-  ts_seas[ts_month %in% c(6, 7, 8)] <<- "Su"
-  ts_seas[ts_month %in% c(9, 10, 11)] <<- "Au"
-
-  tr_month <<- rep(tr_month, each = length(tr_years))
-  tr_seas <<- rep(tr_seas, each = length(tr_years))
-
-  return(plot_obj)
-}
-
-# plot example temperature ensemble forecast
-plot_example <- function() {
-  s <- sample(seq_along(stat_ids), 1)
-  t <- sample(seq_along(ts_times), 1)
-  df <- data.frame(lt = lead_times,
-                   y = c(as.vector(ts_fc[s, , t, ]), ts_obs[s, , t]),
-                   m = as.factor(rep(0:n_ens, each = length(lead_times))))
-
-  ggplot(df) + geom_line(aes(x = lt, y = y, col = m)) +
-    scale_x_continuous(name = "Lead time (hours)", expand = c(0, 0)) +
-    scale_y_continuous(name = "Temperature (C)") +
-    scale_color_manual(values = c(rep("grey", n_ens), "black")) +
-    theme_bw() +
-    theme(panel.grid = element_blank(), legend.position = "none")
-}
+##### utility functions for EUPPBench temperature case study
 
 # plot predicted vs observed temperature
 plot_pred <- function(filename = NULL) {
@@ -262,35 +84,22 @@ verif_lists <- function(ts_obs, t_vec, a_vec) {
   widt <<- cover
 }
 
-# perform cross validation to find the optimal number of bins at each station
-conformal_binning_cv <- function(k_vec = c(1, seq(5, 50, 5))) {
-
-  score_mat <- array(NA, c(n_loc, length(k_vec), 4))
-  n <- ncol(tr_obs)
-  val_ind <- sample(c(rep(T, 0.25*n), rep(F, 0.75*n)))
-  for (j in seq_along(stat_ids)) {
-    st <- stat_ids[j]
-    for (i in 1:4) {
-      s <- c("Wi", "Sp", "Su", "Au")[i]
-      print(paste0('Forecast at Station: ', st, ' (', j, ' from ', length(stat_ids), ') and Season: ', s))
-
-      ### Get train data
-      ind <- (tr_seas == s) & !val_ind
-      train <- data.frame(obs = tr_obs[j, ind], ens.mu = tr_fc_mn[j, ind])
-      ind <- (tr_seas == s) & val_ind
-      val <- data.frame(obs = tr_obs[j, ind], ens.mu = tr_fc_mn[j, ind])
-
-      for (l in seq_along(k_vec)) {
-        k <- k_vec[l]
-        scores <- conformal_bin(x = train$ens.mu, y = train$obs, x_out = val$ens.mu, y_out = val$obs, k = k)
-        score_mat[j, l, i] <- sapply(scores, function(x) x$crps) |> mean()
-      }
-
+# function to get indices of all dates within 90 days of target date
+roll_index <- function(i, win_len, tr_times, ts_times) {
+  ind <- (i - win_len):(i + win_len)
+  roll_times <- ts_times[i] + days(c(-win_len, win_len))
+  tr_ind <- logical(length(tr_times))
+  for (k in -2:2) {
+    roll_times_mod <- roll_times + years(k)
+    c <- 0
+    while (any(is.na(roll_times_mod))) {
+      c <- c + 1
+      roll_times_mod <- ts_times[i] + days(c(-win_len-c, win_len+c)) + years(k)
     }
+    tr_ind <- tr_ind | (tr_times >= roll_times_mod[1]  & tr_times <= roll_times_mod[2])
   }
-  k <- sapply(1:n_loc, function(i) sapply(1:4, function(j) k_vec[which.min(score_mat[i, , j])]))
-
-  return(k)
+  tr_ind <- replicate(20, tr_ind) |> t() |> as.vector()
+  return(tr_ind)
 }
 
 # wrapper to plot pit histograms
@@ -333,9 +142,8 @@ plot_tcal <- function(F_t, ts_obs, t_vec, filename = NULL) {
   tc_plot <- gridExtra::grid.arrange(lspm_plot, cidr_plot, locb_plot, nrow = 1)
   if (!is.null(filename)) {
     ggsave(plot = tc_plot, filename, width = 1.3*7.5, height = 1.3*2.5)
-  } else {
-    return(tc_plot)
   }
+  return(tc_plot)
 }
 
 # wrapper to plot thickness of conformal IDR bands
@@ -402,7 +210,7 @@ plot_thick <- function(thick, type = "traffic", obs = NULL, times = NULL, x = NU
 # wrapper to plot average interval score
 plot_is <- function(is, alpha = NULL, filename = NULL) {
   av_score <- sapply(intsc, apply, 3, mean)
-  df <- data.frame(s = as.vector(av_score), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB", "CQR"), each = length(alpha)))
+  df <- data.frame(s = as.vector(av_score), a = 1 - alpha, mth = rep(c("LSPM", "CIDR", "CB"), each = length(alpha)))
   is_plot <- ggplot(df) + geom_point(aes(x = a, y = s, col = mth), size = 2) +
     geom_line(aes(x = a, y = s, col = mth), linewidth = 1) +
     scale_x_continuous(name = expression(paste("Nominal level (", 1 - alpha, ")")), limits = c(0, 1)) +
@@ -413,6 +221,8 @@ plot_is <- function(is, alpha = NULL, filename = NULL) {
           legend.position = c(0.01, 0.99))
   if (!is.null(filename)) {
     ggsave(plot = is_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(is_plot)
   }
 }
 
@@ -436,18 +246,19 @@ plot_cov_unc <- function(cov, alpha = NULL, filename = NULL) {
 
   if (!is.null(filename)) {
     ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(cov_plot)
   }
-
 }
 
 # wrapper to plot conditional coverage
 plot_cov_con <- function(cov, alpha = NULL, x_ts = NULL, n_bins = 10, filename = NULL) {
   if (is.null(alpha)) alpha <- seq(0.05, 0.95, 0.05)
-
+  n_loc <- nrow(x_ts)
   breaks <- seq(0, 1, length.out = n_bins + 1)
   cond_cal_05 <- sapply(1:n_bins, function(i) {
     cov_mat <- sapply(1:n_loc, function(j) {
-      q <- quantile(tr_obs[j, ], c(breaks[i], breaks[i + 1])) |> unname()
+      q <- quantile(ts_fc_mn[j, ], c(breaks[i], breaks[i + 1])) |> unname()
       if (i == n_bins) {
         ind <- (x_ts[j, ] >= q[1] & x_ts[j, ] <= q[2])
       } else {
@@ -491,8 +302,9 @@ plot_cov_con <- function(cov, alpha = NULL, x_ts = NULL, n_bins = 10, filename =
 
   if (!is.null(filename)) {
     ggsave(plot = cov_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(cov_plot)
   }
-
 }
 
 # wrapper to plot average prediction interval length
@@ -514,6 +326,8 @@ plot_width <- function(width, alpha = NULL, filename = NULL) {
 
   if (!is.null(filename)) {
     ggsave(plot = wid_plot, filename, width = 5, height = 3, dpi = 300)
+  } else {
+    return(wid_plot)
   }
 
 }
